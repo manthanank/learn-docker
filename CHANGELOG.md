@@ -1,3 +1,12 @@
+# [1.3.0](https://github.com/manthanank/learn-docker/compare/v1.2.1...v1.3.0) (2023-04-23)
+
+
+### Features
+
+* updated ([675effb](https://github.com/manthanank/learn-docker/commit/675effb606193c8507882c8622372862ec30b64a))
+
+
+
 ## [1.2.1](https://github.com/manthanank/learn-docker/compare/v1.2.0...v1.2.1) (2023-04-15)
 
 
