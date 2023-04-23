@@ -1,5 +1,7 @@
 # Learn Docker
 
+![npm](https://img.shields.io/npm/dw/learn-docker)
+
 Check Docker Version :
 
 ```bash
