@@ -161,16 +161,29 @@ Here are the 10 fundamental commands you will use daily:
 
 ### Writing Your Very First Dockerfile (Step-by-Step)
 
-Let's containerize a simple Node.js web server. Create a project folder with two files:
+A **`Dockerfile`** is a declarative recipe of instructions that Docker executes sequentially to assemble an immutable container image. Let's build and containerize a minimal Node.js web application:
+
+Create two files in your project directory:
 
 **`server.js`**:
 ```javascript
 const http = require('http');
+
+// Create HTTP server listening for client requests
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ message: "Hello from inside Docker!", uptime: process.uptime() }));
+  res.end(JSON.stringify({ 
+    status: "healthy",
+    message: "Hello from inside an isolated Docker container!", 
+    uptime: process.uptime(),
+    pid: process.pid
+  }));
 });
-server.listen(3000, '0.0.0.0', () => console.log("Server listening on port 3000"));
+
+// Bind to 0.0.0.0 (all network interfaces) so traffic forwarded from Docker host is accepted
+server.listen(3000, '0.0.0.0', () => {
+  console.log("Server listening on port 3000 inside container");
+});
 ```
 
 **`Dockerfile`**:
@@ -178,30 +191,49 @@ server.listen(3000, '0.0.0.0', () => console.log("Server listening on port 3000"
 # 1. Base Image: Start with an official lightweight Linux environment with Node pre-installed
 FROM node:22-alpine
 
-# 2. Working Directory: Set the internal folder where commands execute
+# 2. Working Directory: Set the internal execution directory (auto-created if missing)
 WORKDIR /app
 
-# 3. Copy Source Code: Transfer server.js from host to /app inside container
+# 3. Copy Source Code: Transfer server.js from host machine into /app inside image
 COPY server.js .
 
-# 4. Expose Port: Document that the container process listens on port 3000
+# 4. Expose Port: Document metadata that the application listens on port 3000
 EXPOSE 3000
 
-# 5. Default Command: The instruction that executes when container launches
+# 5. Default Command: Specify the binary and arguments executed when container spawns
 CMD ["node", "server.js"]
 ```
 
+#### Exhaustive Line-by-Line Dockerfile Explanation:
+1. `FROM node:22-alpine`:
+   - **Base Image**: Specifies the initial foundation layer. `node:22-alpine` is an ultra-minimal Alpine Linux distribution containing Node.js 22 (~50MB total image size compared to ~1.1GB for standard Ubuntu/Debian). Every subsequent command builds a read-only layer on top of this base.
+2. `WORKDIR /app`:
+   - Sets the working directory for all subsequent instructions (`COPY`, `RUN`, `CMD`). If `/app` does not exist in the image filesystem, Docker creates it automatically. Avoid using `RUN cd /app` because each `RUN` command executes in a separate ephemeral subshell, losing directory context!
+3. `COPY server.js .`:
+   - Transfers `server.js` from the host build context into the current working directory (`/app`) inside the image.
+   - **`COPY` vs `ADD`**: Always prefer `COPY`. `ADD` has unpredictable magic behaviors (auto-extracting `.tar` archives and downloading remote URLs), which can introduce security vulnerabilities.
+4. `EXPOSE 3000`:
+   - **Documentation Metadata**: Informs operators and container platforms that the container process listens on port 3000. `EXPOSE` does **not** publish or bind the port to your host machine; you must still provide the `-p 3000:3000` flag when running `docker run`.
+5. `CMD ["node", "server.js"]`:
+   - **Exec Form vs Shell Form**: Using JSON array syntax (`["node", "server.js"]`) runs the Node process directly as **PID 1** inside the container. This ensures that OS signals (`SIGTERM`, `SIGINT`) sent during `docker stop` are received directly by Node, enabling graceful connection draining. Using shell form (`CMD node server.js`) spawns `/bin/sh -c`, which does not forward OS signals and causes 10-second shutdown timeouts!
+
+---
+
 #### Build & Run Your Image:
 ```bash
-# Build the image and tag it as 'my-first-app:1.0'
+# 1. Build the image and tag it as 'my-first-app:1.0'
+# The trailing '.' represents the build context directory
 docker build -t my-first-app:1.0 .
 
-# Run the image as a container
+# 2. Run the image as a background detached container
 docker run -d -p 3000:3000 --name running-app my-first-app:1.0
 
-# Verify by querying HTTP endpoint
+# 3. Verify by querying HTTP endpoint
 curl http://localhost:3000
-# Response: {"message":"Hello from inside Docker!","uptime":1.42}
+# Response: {"status":"healthy","message":"Hello from inside an isolated Docker container!","uptime":1.42,"pid":1}
+
+# 4. View container console logs
+docker logs -f running-app
 ```
 
 ---
