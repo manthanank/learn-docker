@@ -1,4 +1,4 @@
-# Learn Docker: Enterprise Architecture, Container Internals & OCI Platform
+# Learn Docker: The Complete Beginner-to-Expert Masterclass
 
 [![CI Test Suite](https://github.com/manthanank/learn-docker/actions/workflows/ci.yml/badge.svg)](https://github.com/manthanank/learn-docker/actions/workflows/ci.yml)
 [![Docker Image](https://github.com/manthanank/learn-docker/actions/workflows/docker.yml/badge.svg)](https://github.com/manthanank/learn-docker/actions/workflows/docker.yml)
@@ -7,114 +7,621 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![OCI Compliant](https://img.shields.io/badge/OCI-Image%20%26%20Runtime-blue.svg)](https://opencontainers.org/)
 
-An authoritative, enterprise-grade engineering reference manual and interactive simulator for **container virtualization**, **CPython/Node/Go containerization**, **Linux kernel primitives (Namespaces & Cgroups v2)**, **Overlay2 UnionFS & Copy-on-Write (CoW)**, **Docker networking & iptables NAT**, **BuildKit multi-stage engineering**, and **staff-level container architecture**.
+An exhaustive, authoritative, **beginner-to-expert guide** and interactive platform for Docker and container virtualization. This curriculum begins with absolute zero-prerequisite fundamentals, walks through intermediate multi-container development, advances into production optimization and security, and culminates in Linux kernel internals (`runc`, `containerd`, Namespaces, Cgroups v2, OverlayFS, and iptables NAT).
+
+---
+
+## Pedagogical Roadmap: Beginner to Expert
+
+```text
++-----------------------------------------------------------------------------------------------+
+|                               THE DOCKER LEARNING JOURNEY                                     |
++-------------------+-------------------+-----------------------+-------------------------------+
+| STAGE 1           | STAGE 2           | STAGE 3               | STAGE 4 & 5                   |
+| Absolute Beginner | Intermediate Dev  | Advanced Production   | Expert Internals & Staff Arch |
++-------------------+-------------------+-----------------------+-------------------------------+
+| • What is Docker? | • Docker Compose  | • Multi-Stage Builds  | • OCI Stack (dockerd, runc)   |
+| • Images vs Cont. | • Multi-Service   | • BuildKit Caching    | • Linux Namespaces & Cgroups  |
+| • First Container | • Networking & DNS| • Distroless/Alpine   | • Overlay2 CoW & Inodes       |
+| • First Dockerfile| • Named Volumes   | • CIS Hardening       | • iptables NAT & veth Routing |
+| • Port Mapping    | • Bind Mounts Dev | • Signals & PID 1     | • Kubernetes Migration        |
+| • Basic 10 Cmds   | • Docker Hub Push | • Resource Quotas     | • 25 Staff Interview Q&A      |
++-------------------+-------------------+-----------------------+-------------------------------+
+```
 
 ---
 
 ## Table of Contents
-0. [Containerization Fundamentals & OCI Standards](#0-containerization-fundamentals--oci-standards)
-   - [Virtual Machines vs Containers (Hypervisor vs Kernel Sharing)](#virtual-machines-vs-containers-hypervisor-vs-kernel-sharing)
-   - [The OCI Specifications (Image Spec, Runtime Spec, Distribution Spec)](#the-oci-specifications-image-spec-runtime-spec-distribution-spec)
-   - [The Modern Container Stack: dockerd, containerd, containerd-shim, runc](#the-modern-container-stack-dockerd-containerd-containerd-shim-runc)
-1. [Linux Kernel Primitives: The Anatomy of a Container](#1-linux-kernel-primitives-the-anatomy-of-a-container)
-   - [Linux Namespaces Deep Dive (PID, NET, MNT, UTS, IPC, USER, CGROUP)](#linux-namespaces-deep-dive-pid-net-mnt-uts-ipc-user-cgroup)
-   - [Cgroups v2 Architecture & Resource Throttling (CFS Quotas, OOM Killer)](#cgroups-v2-architecture--resource-throttling-cfs-quotas-oom-killer)
-   - [Linux Capabilities & Privilege Dropping](#linux-capabilities--privilege-dropping)
-   - [Seccomp Profiles & Linux Security Modules (AppArmor / SELinux)](#seccomp-profiles--linux-security-modules-apparmor--selinux)
-2. [Storage Drivers, UnionFS & Overlay2 Deep Dive](#2-storage-drivers-unionfs--overlay2-deep-dive)
-   - [Architecture of UnionFS & Overlay2](#architecture-of-unionfs--overlay2)
-   - [LowerDir, UpperDir, WorkDir, and MergedDir Dynamics](#lowerdir-upperdir-workdir-and-mergeddir-dynamics)
-   - [Copy-on-Write (CoW) Mechanics at the Inode Level](#copy-on-write-cow-mechanics-at-the-inode-level)
-   - [Deletion Mechanics: Whiteout Files (.wh.*) & Opaque Dirs](#deletion-mechanics-whiteout-files-wh-and-opaque-dirs)
-3. [Docker Networking Architecture & Traffic Routing](#3-docker-networking-architecture--traffic-routing)
-   - [Network Drivers: Bridge, Host, Overlay, Macvlan, None](#network-drivers-bridge-host-overlay-macvlan-none)
-   - [Virtual Ethernet (veth) Pairs & docker0 Linux Bridge](#virtual-ethernet-veth-pairs--docker0-linux-bridge)
-   - [iptables NAT, Port Forwarding & Connection Tracking](#iptables-nat-port-forwarding--connection-tracking)
-   - [Embedded DNS (127.0.0.11) & User-Defined Bridges](#embedded-dns-1270011--user-defined-bridges)
-4. [Production Dockerfile Engineering & BuildKit](#4-production-dockerfile-engineering--buildkit)
-   - [BuildKit Architecture & Cache Mounts](#buildkit-architecture--cache-mounts)
-   - [Multi-Stage Builds: Build vs Runtime Separation](#multi-stage-builds-build-vs-runtime-separation)
-   - [Secret Mounts vs Environment Injection](#secret-mounts-vs-environment-injection)
-   - [Distroless Images, Alpine vs Debian Slim, and Scratch Containers](#distroless-images-alpine-vs-debian-slim-and-scratch-containers)
-   - [Signals & PID 1 Init Systems (tini, dumb-init, exec form vs shell form)](#signals--pid-1-init-systems-tini-dumb-init-exec-form-vs-shell-form)
-5. [Docker Compose & Multi-Service Orchestration](#5-docker-compose--multi-service-orchestration)
-   - [Compose V2 Specification & Dependency DAG Resolution](#compose-v2-specification--dependency-dag-resolution)
-   - [Healthcheck Bootstrapping (depends_on with condition)](#healthcheck-bootstrapping-depends_on-with-condition)
-   - [Volume Architectures: Named Volumes vs Bind Mounts vs tmpfs](#volume-architectures-named-volumes-vs-bind-mounts-vs-tmpfs)
-6. [Enterprise Security & CIS Benchmark Hardening](#6-enterprise-security--cis-benchmark-hardening)
-   - [CIS Docker Benchmark Hardening Checklist](#cis-docker-benchmark-hardening-checklist)
-   - [Rootless Docker Architecture & User Namespaces](#rootless-docker-architecture--user-namespaces)
-   - [Read-Only Root Filesystem (--read-only) with Ephemeral Mounts](#read-only-root-filesystem---read-only-with-ephemeral-mounts)
-   - [Container Breakout Mitigations & Attack Vector Taxonomy](#container-breakout-mitigations--attack-vector-taxonomy)
-7. [Enterprise Docker CLI & Diagnostics Power-Tools Cheatsheet](#7-enterprise-docker-cli--diagnostics-power-tools-cheatsheet)
-   - [Container Lifecycle & Signal Commands](#container-lifecycle--signal-commands)
-   - [Image Engineering, Buildx & Multi-Arch](#image-engineering-buildx--multi-arch)
-   - [Advanced JSON Inspection & Go Templates](#advanced-json-inspection--go-templates)
-   - [Real-Time Observability: Stats, Top & Events](#real-time-observability-stats-top--events)
-   - [System Cleanup & Disk Space Reclamation](#system-cleanup--disk-space-reclamation)
-8. [Docker to Kubernetes (K8s) Architectural Migration Guide](#8-docker-to-kubernetes-k8s-architectural-migration-guide)
-   - [Docker Compose to Kubernetes Conceptual Matrix](#docker-compose-to-kubernetes-conceptual-matrix)
-   - [Side-by-Side Manifest Migration (Compose to Deployment & Service)](#side-by-side-manifest-migration-compose-to-deployment--service)
-   - [Probes vs Docker Healthcheck (Liveness, Readiness, Startup)](#probes-vs-docker-healthcheck-liveness-readiness-startup)
-9. [Staff & Principal DevOps / Containerization Interview Masterclass (25 Q&A)](#9-staff--principal-devops--containerization-interview-masterclass-25-qa)
-10. [Interactive Simulator, CLI & REST API Reference](#10-interactive-simulator-cli--rest-api-reference)
+1. [Stage 1: Absolute Beginner Foundations](#1-stage-1-absolute-beginner-foundations)
+   - [The "Works on My Machine" Dilemma](#the-works-on-my-machine-dilemma)
+   - [Core Mental Models: Image vs Container vs Registry](#core-mental-models-image-vs-container-vs-registry)
+   - [Running Your First Container: `hello-world` & `nginx`](#running-your-first-container-hello-world--nginx)
+   - [Essential CLI Commands for Everyday Use](#essential-cli-commands-for-everyday-use)
+   - [Writing Your Very First Dockerfile (Step-by-Step)](#writing-your-very-first-dockerfile-step-by-step)
+   - [Port Forwarding Demystified (`-p 8080:80`)](#port-forwarding-demystified--p-808080)
+   - [Container Ephemerality & Basic Volumes](#container-ephemerality--basic-volumes)
+2. [Stage 2: Intermediate Multi-Container Workflows](#2-stage-2-intermediate-multi-container-workflows)
+   - [Why Single Containers Aren't Enough](#why-single-containers-arent-enough)
+   - [Docker Compose: Multi-Service Declarative Orchestration](#docker-compose-multi-service-declarative-orchestration)
+   - [Container Networking: Service Discovery by DNS](#container-networking-service-discovery-by-dns)
+   - [Data Persistence: Named Volumes vs Bind Mounts for Local Dev](#data-persistence-named-volumes-vs-bind-mounts-for-local-dev)
+   - [Environment Variables, `.env` Files & Configurations](#environment-variables-env-files--configurations)
+   - [Pushing and Versioning on Docker Hub](#pushing-and-versioning-on-docker-hub)
+3. [Stage 3: Advanced Optimization & Production Engineering](#3-stage-3-advanced-optimization--production-engineering)
+   - [Multi-Stage Builds: Slashing Image Sizes from 1.2GB to 80MB](#multi-stage-builds-slashing-image-sizes-from-12gb-to-80mb)
+   - [BuildKit Architecture & Cache Mounts (`--mount=type=cache`)](#buildkit-architecture--cache-mounts---mounttypecache)
+   - [Secret Mounts (`--mount=type=secret`) vs Environment Leaks](#secret-mounts---mounttypesecret-vs-environment-leaks)
+   - [Base Image Selection: Ubuntu vs Debian-Slim vs Alpine vs Distroless](#base-image-selection-ubuntu-vs-debian-slim-vs-alpine-vs-distroless)
+   - [Signals, PID 1, and Init Systems (`tini`, `dumb-init`)](#signals-pid-1-and-init-systems-tini-dumb-init)
+   - [Healthchecks & Automatic Container Healing](#healthchecks--automatic-container-healing)
+   - [Resource Limits: Preventing Starvation with CPU & Memory Constraints](#resource-limits-preventing-starvation-with-cpu--memory-constraints)
+4. [Stage 4: Expert Internals & Kernel Primitives](#4-stage-4-expert-internals--kernel-primitives)
+   - [The OCI Runtime Architecture: `dockerd`, `containerd`, `shim`, `runc`](#the-oci-runtime-architecture-dockerd-containerd-shim-runc)
+   - [Linux Namespaces: PID, NET, MNT, UTS, IPC, USER](#linux-namespaces-pid-net-mnt-uts-ipc-user)
+   - [Linux Cgroups v2: Completely Fair Scheduler (CFS) & OOM Killer](#linux-cgroups-v2-completely-fair-scheduler-cfs--oom-killer)
+   - [Storage Drivers & Overlay2 UnionFS (LowerDir, UpperDir, CoW, Whiteouts)](#storage-drivers--overlay2-unionfs-lowerdir-upperdir-cow-whiteouts)
+   - [Docker Network Routing: veth Pairs, Bridge Switching & iptables NAT](#docker-network-routing-veth-pairs-bridge-switching--iptables-nat)
+   - [Rootless Docker & Attack Vector Mitigations](#rootless-docker--attack-vector-mitigations)
+5. [Stage 5: Enterprise DevOps & Kubernetes Migration](#5-stage-5-enterprise-devops--kubernetes-migration)
+   - [Docker CLI Power Tools & JSON Go Templates](#docker-cli-power-tools--json-go-templates)
+   - [Docker Compose to Kubernetes (K8s) Architectural Migration](#docker-compose-to-kubernetes-k8s-architectural-migration)
+   - [CI/CD Pipelines & Multi-Arch Buildx (AMD64 & ARM64)](#cicd-pipelines--multi-arch-buildx-amd64--arm64)
+6. [Stage 6: Staff & Principal DevOps Interview Masterclass (25 Q&A)](#6-stage-6-staff--principal-devops-interview-masterclass-25-qa)
+7. [Stage 7: Interactive Simulator, CLI & REST API Reference](#7-stage-7-interactive-simulator-cli--rest-api-reference)
 
 ---
-## 0. Containerization Fundamentals & OCI Standards
+## 1. Stage 1: Absolute Beginner Foundations
 
-### Virtual Machines vs Containers (Hypervisor vs Kernel Sharing)
+### The "Works on My Machine" Dilemma
 
-Containers and Virtual Machines (VMs) solve workload isolation through distinct architectural layers:
+Before containers, shipping software was plagued by environmental discrepancies:
+- Developer Alice develops on macOS with Python 3.11 and SQLite 3.39.
+- Developer Bob tests on Windows 11 with Python 3.10 and missing C++ compiler tools.
+- Production runs on Red Hat Enterprise Linux 8 with Python 3.9 and an outdated OpenSSL library.
+
+The application crashes in production with: `ImportError: /lib64/libc.so.6: version 'GLIBC_2.34' not found`.
+
+**What Docker Does**:
+Docker packages the **application code**, **runtime engine** (Node.js, Python, Go, Java), **system libraries**, **package dependencies**, and **exact filesystem configuration** into an immutable, self-contained unit called an **Image**. If an image runs on developer Alice's laptop, it will run identically on Bob's laptop, on AWS ECS, on Azure Kubernetes Service, and on Google Cloud Run.
+
+---
+
+### Core Mental Models: Image vs Container vs Registry
+
+To master Docker, understand this fundamental tri-part relationship:
 
 ```text
-+-------------------------------------------------------+   +-------------------------------------------------------+
-|                    VIRTUAL MACHINE                    |   |                       CONTAINER                       |
-+-------------------------------------------------------+   +-------------------------------------------------------+
-| Application A     | Application B                     |   | Application A     | Application B                     |
-| App Binaries/Libs | App Binaries/Libs                 |   | App Binaries/Libs | App Binaries/Libs                 |
-+-------------------+-----------------------------------+   +-------------------+-----------------------------------+
-| Guest OS (Linux)  | Guest OS (Windows/Linux)          |   | Container Isolation Engine (Namespaces, Cgroups, CoW) |
-+-------------------+-----------------------------------+   +-------------------------------------------------------+
-| Virtual Hardware (vCPU, vRAM, vNIC via QEMU/KVM)      |   | Shared Host Linux Kernel (syscall interface)          |
-+-------------------------------------------------------+   +-------------------------------------------------------+
-| Type-1 / Type-2 Hypervisor (ESXi, KVM, Hyper-V)       |   | Host Physical Hardware (CPU, RAM, NIC)                |
-+-------------------------------------------------------+   +-------------------------------------------------------+
-| Host Physical Hardware                                |
-+-------------------------------------------------------+
++---------------------+         docker build          +---------------------+
+|     Dockerfile      |  ─────────────────────────▶   |    Docker Image     |
+| (Source Blueprint)  |                               | (Class / Static DVD)|
++---------------------+                               +---------------------+
+                                                                 │
+                                                       docker run│
+                                                                 ▼
++---------------------+         docker push           +---------------------+
+|   Docker Registry   |  ◀─────────────────────────   |  Docker Container   |
+| (Docker Hub / ECR)  |                               | (Object / Live App) |
++---------------------+                               +---------------------+
 ```
 
-| Architectural Metric | Virtual Machine (VM) | Container (OCI / Docker) |
+1. **Dockerfile**: A plain text configuration file containing instructions (`FROM`, `COPY`, `RUN`, `CMD`) to build an image.
+2. **Docker Image**: An immutable, read-only template with all dependencies baked in. Think of an image as a **Class** in Object-Oriented Programming, or a **Read-Only ISO / DVD**.
+3. **Docker Container**: A runnable, isolated instance of an image. Think of a container as an **Object (instance of a class)** in OOP. You can spawn 1, 10, or 100 containers from a single image.
+4. **Registry**: A remote repository store (such as Docker Hub, AWS ECR, GitHub Packages) where images are published and pulled.
+
+---
+
+### Running Your First Container: `hello-world` & `nginx`
+
+Let's execute your first container. Open your terminal:
+
+```bash
+docker run hello-world
+```
+
+#### What happens behind the scenes:
+1. Docker CLI queries the local image cache for an image named `hello-world:latest`.
+2. Finding no local copy, the daemon contacts Docker Hub registry: `Unable to find image 'hello-world:latest' locally... Pulling from library/hello-world`.
+3. The daemon downloads the layer filesystem and verifies the sha256 checksum.
+4. The daemon assigns an isolated container sandbox, starts the entrypoint binary, prints the greeting message to your screen, and cleanly exits.
+
+Now, let's run a persistent background web server:
+
+```bash
+docker run -d -p 8080:80 --name my-web-server nginx:alpine
+```
+
+- `-d` (**detached mode**): Runs the container in the background, freeing your terminal.
+- `-p 8080:80` (**port publishing**): Maps port `8080` on your host computer to port `80` inside the container.
+- `--name my-web-server`: Gives the container a human-readable identifier.
+- `nginx:alpine`: The image name and tag (Alpine Linux version of NGINX).
+
+Open your browser and navigate to `http://localhost:8080`. You will see the **"Welcome to nginx!"** landing page!
+
+---
+
+### Essential CLI Commands for Everyday Use
+
+Here are the 10 fundamental commands you will use daily:
+
+| Command | Action | Example |
 | :--- | :--- | :--- |
-| **Isolation Boundary** | Hardware abstraction via Hypervisor (VT-x / AMD-V) | Linux kernel primitives (Namespaces & Cgroups) |
-| **Operating System** | Dedicated Guest OS Kernel per VM | Shared Host Linux Kernel |
-| **Startup Latency** | Tens of seconds to minutes | Milliseconds (process spawn) |
-| **Memory Footprint** | Gigabytes (kernel + systemd + daemons) | Megabytes (only process memory + shared page cache) |
-| **Density** | Low to Moderate (tens of VMs per host) | Extreme (hundreds to thousands per host) |
-| **I/O Performance** | Emulated / VirtIO block & network layer | Near-native bare-metal system call execution |
+| `docker run` | Create and start a container | `docker run -d -p 3000:3000 node:22-alpine` |
+| `docker ps` | List active running containers | `docker ps` |
+| `docker ps -a` | List all containers (running & stopped) | `docker ps -a` |
+| `docker stop` | Gracefully stop a running container | `docker stop my-web-server` |
+| `docker start` | Restart an existing stopped container | `docker start my-web-server` |
+| `docker rm` | Delete a stopped container | `docker rm my-web-server` |
+| `docker images` | List locally downloaded images | `docker images` |
+| `docker rmi` | Delete a local image | `docker rmi nginx:alpine` |
+| `docker logs` | View container console stdout/stderr | `docker logs -f my-web-server` |
+| `docker exec` | Run an interactive shell inside container| `docker exec -it my-web-server sh` |
 
 ---
 
-### The OCI Specifications (Image Spec, Runtime Spec, Distribution Spec)
+### Writing Your Very First Dockerfile (Step-by-Step)
 
-The **Open Container Initiative (OCI)** is an open governance body under the Linux Foundation that standardizes container formats:
+Let's containerize a simple Node.js web server. Create a project folder with two files:
 
-1. **OCI Image Specification (`image-spec`)**:
-   - Defines an interoperable container image layout consisting of a **Manifest**, an **Image Configuration JSON** (environment variables, working directory, entrypoints), and **Content-Addressable Layer Tarballs** (diff filesystems compressed with gzip or zstd).
-2. **OCI Runtime Specification (`runtime-spec`)**:
-   - Standardizes the configuration, execution environment, and lifecycle of a container on disk (`config.json` bundle). Defines operations: `create`, `start`, `kill`, `delete`, and hooks (`prestart`, `createRuntime`, `poststop`).
-3. **OCI Distribution Specification (`distribution-spec`)**:
-   - Standardizes the HTTP/2 API protocol for pushing, pulling, discovering, and cataloging container images and artifacts across container registries (DockerHub, GitHub Packages, Harbor, AWS ECR).
+**`server.js`**:
+```javascript
+const http = require('http');
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ message: "Hello from inside Docker!", uptime: process.uptime() }));
+});
+server.listen(3000, '0.0.0.0', () => console.log("Server listening on port 3000"));
+```
+
+**`Dockerfile`**:
+```dockerfile
+# 1. Base Image: Start with an official lightweight Linux environment with Node pre-installed
+FROM node:22-alpine
+
+# 2. Working Directory: Set the internal folder where commands execute
+WORKDIR /app
+
+# 3. Copy Source Code: Transfer server.js from host to /app inside container
+COPY server.js .
+
+# 4. Expose Port: Document that the container process listens on port 3000
+EXPOSE 3000
+
+# 5. Default Command: The instruction that executes when container launches
+CMD ["node", "server.js"]
+```
+
+#### Build & Run Your Image:
+```bash
+# Build the image and tag it as 'my-first-app:1.0'
+docker build -t my-first-app:1.0 .
+
+# Run the image as a container
+docker run -d -p 3000:3000 --name running-app my-first-app:1.0
+
+# Verify by querying HTTP endpoint
+curl http://localhost:3000
+# Response: {"message":"Hello from inside Docker!","uptime":1.42}
+```
 
 ---
 
-### The Modern Container Stack: dockerd, containerd, containerd-shim, runc
+### Port Forwarding Demystified (`-p 8080:80`)
 
-The execution of `docker run -d -p 80:80 nginx` traverses a decoupled, production-grade micro-architecture:
+A common stumbling block for beginners is understanding port mapping:
+
+```text
+Host Operating System (Laptop)                 Container Sandbox
++-------------------------------+              +-------------------------------+
+| User hits:                    |              | Internal Web Server           |
+| http://localhost:8080         |              | listens on port 80            |
+|                               |              |                               |
+|       Host Port: 8080         |   Forward    |     Container Port: 80        |
+|    [ 0.0.0.0:8080 ] ──────────┼──────────────┼────▶ [ 172.17.0.2:80 ]         |
++-------------------------------+              +-------------------------------+
+```
+
+The syntax is always: `-p <Host_Port>:<Container_Port>`.
+- If you run `-p 5000:3000`, external visitors connect via `http://localhost:5000`. Docker intercepts that traffic and routes it to port `3000` inside the container.
+- If you omit `-p`, the container runs in complete network isolation; external machines cannot reach it!
+
+---
+
+### Container Ephemerality & Basic Volumes
+
+Containers are **ephemeral** (stateless by default). If you write a file inside a container and delete the container (`docker rm`), the file is permanently destroyed!
+
+To persist data (such as database records or uploaded media), use **Volumes**:
+
+```bash
+# Create a managed Docker named volume
+docker volume create my-database-data
+
+# Mount the volume into the container
+docker run -d -v my-database-data:/var/lib/postgresql/data postgres:16-alpine
+```
+
+Even if you destroy the Postgres container, `my-database-data` remains intact on the host storage disk. Spawning a new container and mounting the same volume restores all database data immediately!
+
+---
+## 2. Stage 2: Intermediate Multi-Container Workflows
+
+### Why Single Containers Aren't Enough
+
+Real-world enterprise applications are composed of multiple collaborating services:
+1. **Frontend Web Client**: React / Vue / Next.js served via NGINX.
+2. **Backend API**: Node.js Express, Python FastAPI, or Go microservice.
+3. **Primary Database**: PostgreSQL or MySQL.
+4. **In-Memory Cache**: Redis.
+5. **Message Broker**: RabbitMQ or Apache Kafka.
+
+Manually executing `docker run` five times with custom networks, port mappings, and environment variables is error-prone, unversioned, and fragile.
+
+---
+
+### Docker Compose: Multi-Service Declarative Orchestration
+
+**Docker Compose** lets you define, configure, and boot your entire multi-service stack with a single declarative YAML file and a single command: `docker compose up -d`.
+
+Create `docker-compose.yml`:
+
+```yaml
+version: "3.8"
+
+services:
+  # Backend API service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DATABASE_URL=postgres://appuser:appsecret@db:5432/production_db
+      - REDIS_URL=redis://cache:6379
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_started
+    networks:
+      - internal-app-net
+
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: appsecret
+      POSTGRES_DB: production_db
+    volumes:
+      - pg-storage:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d production_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal-app-net
+
+  # Redis In-Memory Cache
+  cache:
+    image: redis:7-alpine
+    networks:
+      - internal-app-net
+
+# Persistent Named Volumes
+volumes:
+  pg-storage:
+    driver: local
+
+# Isolated User-Defined Bridge Network
+networks:
+  internal-app-net:
+    driver: bridge
+```
+
+#### The Power of `docker compose` Commands:
+```bash
+# Start entire microservices stack in background
+docker compose up -d
+
+# View consolidated streaming logs across all services
+docker compose logs -f
+
+# Check status and health of all stack containers
+docker compose ps
+
+# Scale the backend API to 3 parallel instances
+docker compose up -d --scale api=3
+
+# Tear down the stack and remove internal networks
+docker compose down
+
+# Tear down stack AND wipe persistent volumes
+docker compose down -v
+```
+
+---
+
+### Container Networking: Service Discovery by DNS
+
+Notice how in the `docker-compose.yml` above:
+- The backend API connects to Postgres using hostname `db`: `postgres://appuser:appsecret@db:5432/production_db`.
+- The backend API connects to Redis using hostname `cache`: `redis://cache:6379`.
+
+**How this works**:
+When you define a custom network in Docker Compose, Docker automatically spins up an **Embedded DNS Server at `127.0.0.11`**.
+Every service registered on the network automatically resolves other containers by their **Service Name**! You never need to hardcode brittle private IP addresses (like `172.18.0.4`).
+
+---
+
+### Data Persistence: Named Volumes vs Bind Mounts for Local Dev
+
+Developers frequently confuse **Named Volumes** and **Bind Mounts**. Here is when to use each:
+
+```text
++-------------------+-----------------------------------+-----------------------------------+
+| Feature           | Named Volume                      | Bind Mount                        |
++-------------------+-----------------------------------+-----------------------------------+
+| **Syntax**        | `-v my-vol:/var/lib/postgresql`   | `-v $(pwd)/src:/app/src`          |
+| **Host Location** | `/var/lib/docker/volumes/<name>`  | Direct host project directory     |
+| **Management**    | Fully managed by Docker daemon    | Managed directly by user / host OS|
+| **Performance**   | Maximum native I/O throughput     | May have filesystem sync overhead |
+| **Best For**      | Production databases, caches      | **Local development live reload** |
++-------------------+-----------------------------------+-----------------------------------+
+```
+
+#### Hot Reloading Code in Development:
+```bash
+# Mount host current directory into /app inside container:
+docker run -it -p 3000:3000 -v $(pwd):/app -v /app/node_modules node:22-alpine sh
+```
+When you edit a file in VS Code or your IDE on your host machine, the changes reflect inside the container instantaneously without rebuilding the image!
+
+---
+
+### Environment Variables, `.env` Files & Configurations
+
+Never commit hardcoded database credentials or API keys to your Dockerfile. Use environment variables:
+
+Create a `.env` file in the same directory as `docker-compose.yml`:
+```bash
+DB_USER=master_admin
+DB_PASS=Sup3rS3cr3tP@ssw0rd!
+DB_NAME=fintech_production
+```
+
+Reference them in `docker-compose.yml`:
+```yaml
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+```
+
+Docker Compose automatically interpolates values from `.env` at launch.
+
+---
+
+### Pushing and Versioning on Docker Hub
+
+Once your image is tested and verified, publish it to a container registry:
+
+```bash
+# 1. Log into your Docker Hub account
+docker login -u <your-dockerhub-username>
+
+# 2. Tag your local image with your repository namespace and version tag
+docker tag my-first-app:1.0 <your-dockerhub-username>/my-first-app:1.0.0
+docker tag my-first-app:1.0 <your-dockerhub-username>/my-first-app:latest
+
+# 3. Push both tags to Docker Hub
+docker push <your-dockerhub-username>/my-first-app:1.0.0
+docker push <your-dockerhub-username>/my-first-app:latest
+```
+
+Now anyone in the world (or your deployment servers) can pull and run your app with:
+`docker run -d -p 3000:3000 <your-dockerhub-username>/my-first-app:1.0.0`.
+
+---
+## 3. Stage 3: Advanced Optimization & Production Engineering
+
+### Multi-Stage Builds: Slashing Image Sizes from 1.2GB to 80MB
+
+A common anti-pattern among novice engineers is shipping compilers, SDKs, development tools (`gcc`, `python3-dev`, `npm`, TypeScript compiler), and test suites in production container images. This causes:
+1. Massive image downloads (1.5GB+ per release), slowing deployment latency.
+2. Huge attack surface containing hundreds of unnecessary vulnerable binaries.
+
+**Multi-Stage Builds** solve this by using multiple `FROM` lines in a single Dockerfile. Artifacts produced in early compiler stages are copied into a lean production runner stage:
+
+```dockerfile
+# ========================================================
+# Stage 1: Build & Compilation Environment (Heavy SDK)
+# ========================================================
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+# Copy package manifests first to leverage Docker layer caching
+COPY package*.json tsconfig.json ./
+
+# Install ALL dependencies (including devDependencies required for build)
+RUN npm ci
+
+# Copy application source code
+COPY src/ ./src/
+
+# Compile TypeScript into JavaScript in dist/
+RUN npm run build
+
+# Remove development dependencies, retaining only production modules
+RUN npm prune --production
+
+# ========================================================
+# Stage 2: Hardened Minimal Production Runner (Lean)
+# ========================================================
+FROM node:22-alpine AS runner
+
+# Security: Create dedicated unprivileged system user (CIS Benchmark 4.1)
+RUN addgroup -S -g 1001 appgroup && \
+    adduser -S -u 1001 -G appgroup appuser
+
+WORKDIR /app
+ENV NODE_ENV=production PORT=3000
+
+# Copy ONLY built artifacts and production dependencies from builder
+COPY --from=builder --chown=appuser:appgroup /app/package*.json ./
+COPY --from=builder --chown=appuser:appgroup /app/node_modules ./node_modules
+COPY --from=builder --chown=appuser:appgroup /app/dist ./dist
+
+# Drop root privileges
+USER appuser
+
+EXPOSE 3000
+
+# Add Container Healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD wget --spider -q http://localhost:3000/health || exit 1
+
+# Graceful termination
+STOPSIGNAL SIGTERM
+
+CMD ["node", "dist/server.js"]
+```
+
+#### Size Comparison:
+- Single-Stage image with build tools: **1.24 GB**
+- Multi-Stage hardened image: **86 MB** (93% reduction!)
+
+---
+
+### BuildKit Architecture & Cache Mounts (`--mount=type=cache`)
+
+Modern Docker features **BuildKit** (`DOCKER_BUILDKIT=1`), which replaces the legacy linear build engine with a concurrent Directed Acyclic Graph (DAG) executor.
+
+BuildKit introduces **Cache Mounts**, which persist package manager caches across builds on the host without baking them into the resulting image layers:
+
+```dockerfile
+# syntax=docker/dockerfile:1.4
+FROM node:22-alpine AS builder
+WORKDIR /app
+
+COPY package*.json ./
+
+# Cache mount preserves /root/.npm across builds on host disk!
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
+
+COPY . .
+RUN npm run build
+```
+
+---
+
+### Secret Mounts (`--mount=type=secret`) vs Environment Leaks
+
+Never pass private SSH keys, tokens, or credentials via `ARG` or `ENV`. Anyone who runs `docker history --no-trunc <image>` can read your secrets in plaintext!
+
+Use BuildKit Secret Mounts:
+```dockerfile
+# syntax=docker/dockerfile:1.4
+FROM alpine:3.18
+RUN apk add --no-cache git openssh-client
+
+# Secret is mounted in memory temporarily at /run/secrets/gh_token during RUN
+RUN --mount=type=secret,id=gh_token \
+    TOKEN=$(cat /run/secrets/gh_token) && \
+    git clone https://${TOKEN}@github.com/my-org/private-repo.git /app
+```
+
+Execute build with:
+```bash
+docker build --secret id=gh_token,src=~/.github_token -t private-app .
+```
+The secret exists only in RAM during the `RUN` execution and is completely absent from the final image layers!
+
+---
+
+### Base Image Selection: Ubuntu vs Debian-Slim vs Alpine vs Distroless
+
+```text
++-------------------+---------------+---------------+---------------------------------------+
+| Base Image        | Typical Size  | C Library     | Enterprise Assessment                 |
++-------------------+---------------+---------------+---------------------------------------+
+| `ubuntu:22.04`    | ~77 MB        | glibc         | Heavy. Contains shells, package tools.|
+| `debian:12-slim`  | ~55 MB        | glibc         | Excellent balance of glibc & size.    |
+| `alpine:3.19`     | ~7 MB         | musl libc     | Ultra-lean. Note: musl can cause C-lib|
+|                   |               |               | performance diffs in Python numpy/ML. |
+| `gcr.io/distroless`| ~20 MB       | glibc         | **Zero shell (`/bin/sh`), zero tools.**|
+|                   |               |               | Ultimate security posture.            |
+| `scratch`         | **0 MB**      | None          | Empty filesystem. Ideal for statically|
+|                   |               |               | compiled Go / Rust binaries.          |
++-------------------+---------------+---------------+---------------------------------------+
+```
+
+---
+
+### Signals, PID 1, and Init Systems (`tini`, `dumb-init`)
+
+In Linux, PID 1 has special status: the kernel will not apply default signal actions (such as terminating on `SIGTERM`) unless the process explicitly registers a signal handler!
+
+#### Shell Form vs JSON Exec Form
+```dockerfile
+# ANTI-PATTERN (Shell Form):
+CMD node server.js
+# Spawns: /bin/sh -c "node server.js"
+# /bin/sh becomes PID 1 and ignores SIGTERM. docker stop hangs for 10s before SIGKILL!
+
+# PRODUCTION PATTERN (Exec Form):
+CMD ["node", "server.js"]
+# Node executes directly as PID 1 and receives SIGTERM immediately.
+```
+
+#### Handling Zombie Processes with `tini`:
+If your application spawns background worker subprocesses, orphaned child processes become defunct "zombies" if PID 1 does not reap them. Use lightweight `tini`:
+
+```dockerfile
+RUN apk add --no-cache tini
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["node", "server.js"]
+```
+
+---
+
+### Resource Limits: Preventing Starvation with CPU & Memory Constraints
+
+In production, an unconstrained container with a memory leak can consume all host RAM, causing the Linux kernel to crash or kill critical system daemons. Always enforce limits:
+
+```bash
+docker run -d \
+  --name bounded-app \
+  --memory="512m" \
+  --memory-reservation="256m" \
+  --cpus="1.5" \
+  --pids-limit=200 \
+  -p 3000:3000 my-app:latest
+```
+
+- `--memory="512m"`: Hard memory ceiling. If the container tries to consume more than 512MB, the Linux OOM Killer terminates it (exit code 137).
+- `--cpus="1.5"`: Restricts container execution to at most 1.5 CPU cores across CFS scheduling periods.
+- `--pids-limit=200`: Prevents fork-bombs from exhausting host PID tables.
+
+---
+## 4. Stage 4: Expert Internals & Kernel Primitives
+
+### The OCI Runtime Architecture: `dockerd`, `containerd`, `shim`, `runc`
+
+There is no single monolithic "Docker binary" that runs containers. Docker coordinates a modular stack standardized under the Open Container Initiative (OCI):
 
 ```mermaid
 flowchart TD
     CLI["Docker CLI (docker)"] -->|REST API over Unix Socket| Dockerd["Docker Daemon (dockerd)"]
-    Dockerd -->|gRPC over /run/containerd.sock| Containerd["Container Supervisor (containerd)"]
+    Dockerd -->|gRPC over containerd socket| Containerd["Container Supervisor (containerd)"]
     Containerd -->|Spawn Process| Shim["containerd-shim"]
     Shim -->|OCI Bundle CLI invocation| Runc["OCI Runtime (runc)"]
     Runc -->|clone syscall + namespaces + cgroups| ContainerProc["Container PID 1 (nginx)"]
@@ -122,19 +629,16 @@ flowchart TD
     Shim -.->|Maintains STDIN/STDOUT and catches SIGCHLD| ContainerProc
 ```
 
-- **`dockerd`**: High-level daemon handling developer ergonomics, CLI REST endpoints, image building (BuildKit), volume management, user-defined bridge networking, and secret storage.
-- **`containerd`**: CNCF graduated container runtime supervisor. Manages complete container lifecycles, image pulling, unpacks layers into snapshotter targets, and tracks container execution state.
-- **`containerd-shim`**: Sits between `containerd` and the running container process. Keeps STDIN, STDOUT, and STDERR FIFO descriptors open and captures process exit codes without requiring `containerd` to remain connected. This enables seamless `dockerd` and `containerd` daemon upgrades without restarting running containers!
-- **`runc`**: The low-level reference implementation of the OCI runtime. Written in Go and C, it interacts directly with the Linux kernel: calls `clone(2)` with `CLONE_NEW*` flags, configures `cgroups`, executes `pivot_root`, and hands off execution to the user application binary. `runc` terminates immediately after launching the container.
+1. **`dockerd`**: User-facing daemon managing networks, volumes, image builds (BuildKit), and CLI REST endpoints.
+2. **`containerd`**: CNCF graduated container supervisor. Manages layer snapshotters, image pulls, and tracks container execution state.
+3. **`containerd-shim`**: Sits between `containerd` and the running container. Keeps STDIN/STDOUT descriptors open and captures exit codes. This allows `dockerd` and `containerd` to restart during upgrades without killing active containers!
+4. **`runc`**: Low-level reference implementation of the OCI runtime spec. Interacts directly with Linux kernel: executes `clone(2)` with namespace flags, sets cgroups, calls `pivot_root`, and drops capabilities before handing execution to the application. `runc` exits immediately after launching the container.
 
 ---
-## 1. Linux Kernel Primitives: The Anatomy of a Container
 
-There is no such thing as a "container" object in the Linux kernel. A container is simply a standard Linux process isolated through **Namespaces**, throttled by **Control Groups (Cgroups)**, restricted by **Capabilities**, and filtered by **Seccomp**.
+### Linux Namespaces: PID, NET, MNT, UTS, IPC, USER
 
-### Linux Namespaces Deep Dive (PID, NET, MNT, UTS, IPC, USER, CGROUP)
-
-Linux Namespaces wrap a global system resource in an abstraction that makes it appear to the processes within the namespace that they have their own isolated instance of the resource:
+Namespaces partition kernel resources so that each container sees its own isolated view of the operating system:
 
 ```text
 +---------------------------------------------------------------------------------------------+
@@ -153,45 +657,23 @@ Linux Namespaces wrap a global system resource in an abstraction that makes it a
 +---------------+---------------------+-------------------------------------------------------+
 ```
 
-#### The PID Namespace & PID 1 Responsibilities
-Inside a container PID namespace, the entrypoint process is assigned **PID 1**. On the host, the exact same process appears under an arbitrary host PID (e.g. PID 18452).
-
-```text
-Host Process Tree:
-  systemd (PID 1)
-     ├── containerd (PID 842)
-     │     └── containerd-shim (PID 18450)
-     │           └── node server.js (Host PID 18452) ─── [Inside Container PID Namespace: PID 1]
-     │                 └── worker-thread (Host PID 18459) [Inside Container PID Namespace: PID 2]
-```
-
-**Critical PID 1 Responsibilities in Containers**:
-1. **Signal Forwarding**: In Linux, the kernel suppresses default signal dispositions (such as terminating on `SIGTERM`) for PID 1 unless the process registers an explicit signal handler. If an application (e.g. Node.js or Python) does not trap `SIGTERM`, running `docker stop` will hang for 10 seconds before being forcibly killed with `SIGKILL` (exit code 137).
-2. **Zombie Process Reaping**: When child processes terminate, they become "zombies" (`<defunct>`) until their parent reads their exit status via `waitpid()`. If an intermediate parent terminates, the orphaned zombie is adopted by PID 1. If PID 1 does not continuously reap zombies, the OS process table exhausts.
-
 ---
 
-### Cgroups v2 Architecture & Resource Throttling (CFS Quotas, OOM Killer)
+### Linux Cgroups v2: Completely Fair Scheduler (CFS) & OOM Killer
 
-While namespaces govern **what a process can see**, Control Groups (Cgroups) govern **how much a process can consume**.
+While namespaces govern **visibility**, Control Groups (Cgroups) govern **resource consumption**.
 
-#### Cgroups v1 vs Cgroups v2
-- **Cgroups v1**: Featured multiple independent hierarchies for each controller (`/sys/fs/cgroup/memory`, `/sys/fs/cgroup/cpu`). Controllers could not communicate, leading to writeback cache deadlocks and broken I/O throttling.
-- **Cgroups v2**: Implements a **unified single-hierarchy tree** (`/sys/fs/cgroup`). Controllers are enabled dynamically per node, ensuring synchronized CPU, memory, and blkio accounting.
+In modern Linux distributions (systemd v247+, kernel 5.8+), Docker uses **Cgroups v2** (`/sys/fs/cgroup`), providing a unified hierarchy:
 
 ```text
-/sys/fs/cgroup/
-  ├── cgroup.controllers (cpu memory io pids)
-  ├── cgroup.subtree_control
-  └── docker/
-        └── <container-id>/
-              ├── cpu.max          (CFS quota & period: e.g. "50000 100000" = 0.5 CPU)
-              ├── cpu.weight       (Relative CPU share: 1..10000, default 100)
-              ├── memory.max       (Hard memory limit: e.g. "536870912" = 512MB)
-              ├── memory.high      (Soft throttling boundary)
-              ├── memory.current   (Active memory consumption)
-              ├── memory.events    (OOM kill counters: "oom 1")
-              └── pids.max         (Fork-bomb guard: maximum concurrent processes)
+/sys/fs/cgroup/docker/<container-id>/
+  ├── cpu.max          (CFS quota & period: e.g. "50000 100000" = 0.5 CPU)
+  ├── cpu.weight       (Relative CPU weight: 1..10000)
+  ├── memory.max       (Hard memory limit in bytes: e.g. "536870912" = 512MB)
+  ├── memory.high      (Soft throttling boundary)
+  ├── memory.current   (Active memory consumption)
+  ├── memory.events    (OOM kill counters: "oom 1")
+  └── pids.max         (Maximum concurrent processes in cgroup)
 ```
 
 #### Completely Fair Scheduler (CFS) Throttling
@@ -201,50 +683,11 @@ Allocated CPU Cores = (cpu.max quota) / (cpu.max period)
 ```
 For example, `--cpus=1.5` sets `cpu.max` to `150000 100000`. If a multi-threaded workload attempts to consume more than 150ms of CPU runtime within a 100ms wall-clock period, the kernel throttles the process until the next CFS period commences.
 
-#### The Linux Out-Of-Memory (OOM) Killer
-When a container's memory usage reaches `memory.max` and swap is disabled (`--memory-swap` set equal to `--memory`), the kernel invokes `mem_cgroup_out_of_memory()`. The OOM Killer evaluates the badness score of processes inside the cgroup and terminates the highest consumer with `SIGKILL` (Linux exit code 137).
-
 ---
 
-### Linux Capabilities & Privilege Dropping
+### Storage Drivers & Overlay2 UnionFS (LowerDir, UpperDir, CoW, Whiteouts)
 
-Linux divides the traditional root superuser privilege into independent units called **Capabilities** (`capabilities(7)`). By default, Docker drops dangerous capabilities:
-
-```text
-+--------------------------------------------------------------------------------------+
-|                           DOCKER DEFAULT CAPABILITIES AUDIT                          |
-+--------------------------+-----------------------------------------------------------+
-| Retained Capability      | Security Purpose                                          |
-+--------------------------+-----------------------------------------------------------+
-| `CAP_CHOWN`              | Make arbitrary changes to file UIDs/GIDs                  |
-| `CAP_DAC_OVERRIDE`       | Bypass file read, write, and execute permission checks    |
-| `CAP_FOWNER`             | Bypass permission checks on operations requiring file own |
-| `CAP_FSETID`             | Retain setuid/setgid bits when modifying files            |
-| `CAP_KILL`               | Send signals to arbitrary processes                       |
-| `CAP_SETGID`             | Arbitrary manipulation of process GIDs                    |
-| `CAP_SETUID`             | Arbitrary manipulation of process UIDs                    |
-| `CAP_NET_BIND_SERVICE`   | Bind a socket to privileged ports below 1024              |
-+--------------------------+-----------------------------------------------------------+
-| Dropped by Default       | Dangerous Primitive (Attack Vector)                       |
-+--------------------------+-----------------------------------------------------------+
-| `CAP_SYS_ADMIN`          | **Container breakout vector**: Mount filesystems, ebpf    |
-| `CAP_NET_RAW`            | Raw socket crafting, ARP poisoning, IP spoofing           |
-| `CAP_SYS_PTRACE`         | Attach debugger to host/other processes via ptrace(2)     |
-| `CAP_SYS_MODULE`         | Insert and remove arbitrary kernel modules into host      |
-+--------------------------+-----------------------------------------------------------+
-```
-
-```bash
-# Recommended Principle of Least Privilege: Drop ALL, add back only what is required:
-docker run --cap-drop=ALL --cap-add=NET_BIND_SERVICE -p 80:80 my-app:latest
-```
-
----
-## 2. Storage Drivers, UnionFS & Overlay2 Deep Dive
-
-### Architecture of UnionFS & Overlay2
-
-Docker uses a layered union filesystem to enable fast container instantiation and minimal disk consumption. While earlier versions supported AUFS, Btrfs, and DeviceMapper, **Overlay2** is the modern standard supported directly by the Linux kernel (`fs/overlayfs/`).
+Docker uses **Overlay2** to stack immutable image layers and present a single unified directory to the container:
 
 ```text
 +-----------------------------------------------------------------------------------+
@@ -265,56 +708,12 @@ Docker uses a layered union filesystem to enable fast container instantiation an
 +-----------------------------------------------------------------------------------+
 ```
 
-### Copy-on-Write (CoW) Mechanics at the Inode Level
-
-Overlay2 employs **Copy-on-Write (CoW)** to optimize disk and memory utilization:
-
-1. **File Read Operations**:
-   - The kernel checks `UpperDir` first. If the file exists, it is served immediately.
-   - If absent in `UpperDir`, the kernel traverses `LowerDir` stack from top to bottom and serves the file from the first layer containing it.
-   - Multiple running containers using the same image share the exact same physical memory pages in the host kernel's Page Cache!
-2. **File Modification Operations (Copy-Up)**:
-   - When a container process opens an existing read-only file from a `LowerDir` with `O_WRONLY` or `O_RDWR`, Overlay2 intercepts the syscall.
-   - The kernel performs an atomic copy-up of the file and its metadata from `LowerDir` into `UpperDir`.
-   - Subsequent writes mutate only the copied replica in `UpperDir`. The underlying image layer remains completely unchanged!
-
-### Deletion Mechanics: Whiteout Files (.wh.*) & Opaque Dirs
-
-Because underlying lower layers are read-only blocks, Overlay2 cannot delete files from the host disk. Deletions are modeled via virtual filesystem markers:
-
-1. **Whiteout Files (`.wh.<filename>`)**:
-   - When a lower-layer file (e.g. `/etc/hosts`) is deleted inside the container, Overlay2 creates a character device file with device number `0/0` named `/etc/.wh.hosts` in the `UpperDir`.
-   - The OverlayFS driver sees this marker and suppresses `/etc/hosts` from the `MergedDir` view.
-2. **Opaque Directories (`.wh..wh..opq`)**:
-   - When an existing directory is removed and replaced inside the container, Overlay2 writes an opaque attribute (`.wh..wh..opq`) inside the newly created directory in `UpperDir`.
-   - This instructs the driver to hide all parent directory contents from underlying lower layers.
+- **Copy-on-Write (CoW)**: When a process inside a container edits an existing file from an image layer, Overlay2 copies the file from `LowerDir` to `UpperDir` before applying changes. The underlying image layer remains completely untouched!
+- **Whiteout Files (`.wh.<filename>`)**: When a container deletes a file residing in a lower layer, Overlay2 creates a character device node `0/0` prefixed with `.wh.` in `UpperDir`, instructing the driver to hide the file in `MergedDir`.
 
 ---
-## 3. Docker Networking Architecture & Traffic Routing
 
-### Network Drivers: Bridge, Host, Overlay, Macvlan, None
-
-Docker abstracts container network connectivity through container network model (CNM) drivers:
-
-```text
-+-------------------+-----------------------------------------------------------------------+
-| Network Driver    | Typical Architecture & Use Case                                       |
-+-------------------+-----------------------------------------------------------------------+
-| **bridge**        | Default single-host network. Creates private subnet (172.17.0.0/16).  |
-|                   | Connected via Linux bridge (docker0) with iptables NAT.               |
-| **host**          | Eliminates network isolation. Container shares host IP and network    |
-|                   | namespace directly. Lowest latency; port collisions possible.        |
-| **overlay**       | Multi-host distributed network. Encapsulates traffic using VXLAN      |
-|                   | (port 4789). Powers Docker Swarm and Kubernetes Calico/Flannel.       |
-| **macvlan**       | Assigns unique MAC address from physical LAN to container. Appears as |
-|                   | a physical machine on network switch. Bypasses host NAT.              |
-| **none**          | Complete air-gapped network isolation. Only loopback (lo) interface. |
-+-------------------+-----------------------------------------------------------------------+
-```
-
-### Virtual Ethernet (veth) Pairs & docker0 Linux Bridge
-
-When a container connects to a bridge network, Docker constructs a virtual link between namespaces:
+### Docker Network Routing: veth Pairs, Bridge Switching & iptables NAT
 
 ```mermaid
 flowchart LR
@@ -337,292 +736,21 @@ flowchart LR
     VethHost <-->|Virtual Ethernet Cable| VethContainer
 ```
 
-1. **Virtual Ethernet (`veth`) Pair**: Acts as a virtual patch cord. Packets transmitted into `veth1a2b3c` in the host namespace emerge immediately on `eth0` inside the container namespace.
-2. **Linux Bridge (`docker0`)**: Operates as a Layer-2 software switch. Forwards ARP broadcasts and Ethernet frames between containers residing on the same subnet.
-
-### iptables NAT, Port Forwarding & Connection Tracking
-
-When publishing a port with `-p 8080:3000`:
-1. Docker adds a Destination NAT (DNAT) rule into the `PREROUTING` and `DOCKER` chains of the iptables `nat` table:
+1. **Virtual Ethernet (`veth`) Pair**: Acts as a virtual patch cord between host and container namespaces.
+2. **`docker0` Bridge**: Operates as a Layer-2 software switch forwarding Ethernet frames across containers on `172.17.0.0/16`.
+3. **iptables Port Forwarding (DNAT)**:
    ```bash
    -A DOCKER -p tcp -m tcp --dport 8080 -j DNAT --to-destination 172.17.0.2:3000
    ```
-2. For outbound container requests accessing the public internet, Docker configures a Source NAT (SNAT / MASQUERADE) rule:
+4. **Outbound Internet Access (SNAT / MASQUERADE)**:
    ```bash
    -A POSTROUTING -s 172.17.0.0/16 ! -o docker0 -j MASQUERADE
    ```
-   This replaces the private container IP (`172.17.0.2`) with the host's public IP before transmitting over WAN.
-
-### Embedded DNS (127.0.0.11) & User-Defined Bridges
-The default `docker0` bridge does **not** provide automatic container name resolution. However, creating a **user-defined bridge** (`docker network create my-net`) activates Docker's embedded DNS server running at `127.0.0.11`:
-- Containers resolve each other by container name or service alias (`http://api:3000`).
-- DNS lookups query `127.0.0.11:53`, which resolves internal container IP addresses dynamically.
 
 ---
-## 4. Production Dockerfile Engineering & BuildKit
+## 5. Stage 5: Enterprise DevOps & Kubernetes Migration
 
-### BuildKit Architecture & Cache Mounts
-**BuildKit** (`DOCKER_BUILDKIT=1`) revolutionizes container compilation with concurrent multi-stage graph resolution, secret mounts, and cache mounts:
-
-```dockerfile
-# syntax=docker/dockerfile:1.4
-FROM node:22-alpine AS builder
-WORKDIR /app
-
-# Cache mount preserves npm/pip caches across builds on host disk!
-RUN --mount=type=cache,target=/root/.npm     npm install -g pnpm
-
-COPY package.json pnpm-lock.yaml ./
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store     pnpm install --frozen-lockfile
-```
-
-### Multi-Stage Builds: Build vs Runtime Separation
-A gold-standard enterprise Dockerfile cleanly decouples compilers and dev tools from minimal production runners:
-
-```dockerfile
-# ========================================================
-# Stage 1: Build & Compilation Environment
-# ========================================================
-FROM node:22-alpine AS builder
-WORKDIR /app
-COPY package*.json tsconfig.json ./
-RUN npm ci
-COPY src/ ./src/
-RUN npm run build && npm prune --production
-
-# ========================================================
-# Stage 2: Hardened, Minimal Production Runner
-# ========================================================
-FROM node:22-alpine AS runner
-
-# CIS Docker Benchmark 4.1: Enforce Non-Root User Execution
-RUN addgroup -S -g 1001 appgroup && \
-    adduser -S -u 1001 -G appgroup appuser
-
-WORKDIR /app
-ENV NODE_ENV=production PORT=3000
-
-# Copy ONLY necessary artifacts from builder
-COPY --from=builder --chown=appuser:appgroup /app/package*.json ./
-COPY --from=builder --chown=appuser:appgroup /app/node_modules ./node_modules
-COPY --from=builder --chown=appuser:appgroup /app/dist ./dist
-
-# Drop root privileges
-USER appuser
-
-EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD wget --spider -q http://localhost:3000/health || exit 1
-
-STOPSIGNAL SIGTERM
-CMD ["node", "dist/server.js"]
-```
-
-### Secret Mounts vs Environment Injection
-
-```dockerfile
-# ANTI-PATTERN: Secrets baked into image layers forever!
-# ARG GITHUB_TOKEN=secret
-# RUN git clone https://${GITHUB_TOKEN}@github.com/org/repo.git
-
-# PRODUCTION PATTERN: BuildKit Secret Mount (Zero footprint in image layers)
-RUN --mount=type=secret,id=gh_token \
-    TOKEN=$(cat /run/secrets/gh_token) && \
-    git clone https://${TOKEN}@github.com/org/repo.git
-```
-
-Build with: `docker build --secret id=gh_token,src=~/.gh_token .`
-
-### Signals & PID 1 Init Systems (tini, dumb-init, exec form vs shell form)
-
-Always use the **JSON exec form** (`CMD ["node", "server.js"]`) instead of the **shell form** (`CMD node server.js`):
-- **Shell Form**: Spawns `/bin/sh -c "node server.js"`. The shell becomes PID 1 and refuses to forward `SIGTERM` to the Node process upon `docker stop`.
-- **Exec Form**: Executes `node server.js` directly as PID 1, allowing proper graceful shutdown and database connection draining.
-
-For applications with child process spawning, use lightweight init systems:
-```dockerfile
-RUN apk add --no-cache tini
-ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node", "server.js"]
-```
-
----
-## 5. Docker Compose & Multi-Service Orchestration
-
-### Compose V2 Specification & Dependency DAG Resolution
-
-Docker Compose V2 is rewritten in Go and integrated natively into the Docker CLI as `docker compose`. It resolves dependencies using Directed Acyclic Graphs (DAGs):
-
-```yaml
-version: "3.8"
-
-services:
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      - DATABASE_URL=postgres://dbuser:secret@db:5432/appdb
-      - REDIS_URL=redis://redis:6379
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    networks:
-      - backend-net
-    restart: unless-stopped
-
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: dbuser
-      POSTGRES_PASSWORD: secret
-      POSTGRES_DB: appdb
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dbuser -d appdb"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - backend-net
-
-  redis:
-    image: redis:7-alpine
-    networks:
-      - backend-net
-
-networks:
-  backend-net:
-    driver: bridge
-
-volumes:
-  pgdata:
-    driver: local
-```
-
-### Volume Architectures: Named Volumes vs Bind Mounts vs tmpfs
-
-```text
-+-------------------+-----------------------------------+-----------------------------------+
-| Volume Mount Type | Host Storage Location             | Enterprise Production Fit         |
-+-------------------+-----------------------------------+-----------------------------------+
-| **Named Volume**  | `/var/lib/docker/volumes/<name>`  | Databases, stateful persistent    |
-|                   | Managed completely by Docker      | services. Best performance.       |
-| **Bind Mount**    | Arbitrary host directory          | Local development hot-reloading   |
-|                   | (e.g. `/home/user/project`)       | and mounting host config files.   |
-| **tmpfs**         | Host RAM (Linux virtual memory)   | Sensitive tokens, ephemeral logs, |
-|                   | Never written to disk             | session caches (wiped on exit).   |
-+-------------------+-----------------------------------+-----------------------------------+
-```
-
----
-## 6. Enterprise Security & CIS Benchmark Hardening
-
-### CIS Docker Benchmark Hardening Checklist
-
-The Center for Internet Security (CIS) defines authoritative benchmarks for container security:
-
-- [x] **Rule 4.1**: Ensure a non-root user is created and assigned in Dockerfile (`USER appuser`).
-- [x] **Rule 4.2**: Verify container images are scanned for vulnerabilities prior to deployment.
-- [x] **Rule 4.3**: Do not install unnecessary packages or package manager caches.
-- [x] **Rule 4.4**: Ensure `HEALTHCHECK` instructions are defined in production stages.
-- [x] **Rule 4.5**: Do not store secrets or access keys in `ENV` or `ARG` directives.
-- [x] **Rule 5.1**: Ensure AppArmor or SELinux profile is active (`--security-opt apparmor=docker-default`).
-- [x] **Rule 5.2**: Verify that Linux capabilities are restricted (`--cap-drop=ALL`).
-- [x] **Rule 5.3**: Do not use the `--privileged` flag under any production circumstance.
-- [x] **Rule 5.4**: Mount container root filesystem as read-only (`--read-only`).
-- [x] **Rule 5.5**: Enforce memory and CPU cgroup limits (`--memory=512m --cpus=1.0`).
-
-### Read-Only Root Filesystem (--read-only) with Ephemeral Mounts
-Hardened production containers should prevent attackers from dropping malware or overwriting binaries:
-
-```bash
-docker run -d \
-  --read-only \
-  --tmpfs /tmp:rw,noexec,nosuid,size=64m \
-  --tmpfs /run:rw,noexec,nosuid,size=16m \
-  --cap-drop=ALL \
-  --cap-add=NET_BIND_SERVICE \
-  -p 3000:3000 \
-  my-app:latest
-```
-
----
-## 7. Enterprise Docker CLI & Diagnostics Power-Tools Cheatsheet
-
-### Container Lifecycle & Signal Commands
-
-```bash
-# Run container detached with automated restart policy and resource constraints
-docker run -d \
-  --name prod-api \
-  --restart unless-stopped \
-  --memory 512m --cpus 1.5 \
-  -p 8080:3000 \
-  -e NODE_ENV=production \
-  -v app-data:/app/data \
-  --health-cmd "wget -q --spider http://localhost:3000/health || exit 1" \
-  --health-interval 30s \
-  manthanank/learn-docker:latest
-
-# Graceful termination (SIGTERM, default 10s timeout before SIGKILL)
-docker stop -t 15 prod-api
-
-# Immediate kernel termination (SIGKILL - exit code 137)
-docker kill -s SIGKILL prod-api
-
-# Send custom POSIX signal to container process (e.g. reload NGINX configs)
-docker kill -s SIGHUP prod-api
-
-# Pause/unpause process execution using Cgroups freezer controller
-docker pause prod-api
-docker unpause prod-api
-
-# Execute interactive shell inside running container namespace
-docker exec -it prod-api /bin/sh
-
-# Override entrypoint during ad-hoc debugging
-docker run --rm -it --entrypoint /bin/sh manthanank/learn-docker:latest
-```
-
----
-
-### Image Engineering, Buildx & Multi-Arch
-
-```bash
-# Build using modern BuildKit engine
-DOCKER_BUILDKIT=1 docker build -t my-app:1.0.0 .
-
-# Target specific intermediate stage in multi-stage Dockerfile
-docker build --target builder -t my-app:build-artifacts .
-
-# Create and bootstrap a multi-architecture Buildx builder instance
-docker buildx create --name multi-builder --driver docker-container --bootstrap --use
-
-# Build, tag, and push multi-architecture image (AMD64 + ARM64) in a single pass
-docker buildx build \
-  --platform linux/amd64,linux/arm64 \
-  -t manthanank/learn-docker:latest \
-  -t manthanank/learn-docker:1.3.0 \
-  --push .
-
-# Inspect multi-architecture image manifest list (OCI Index)
-docker buildx imagetools inspect manthanank/learn-docker:latest
-
-# Display image layer history, cached status, and layer size breakdown
-docker history --no-trunc my-app:latest
-```
-
----
-
-### Advanced JSON Inspection & Go Templates
-
-Docker CLI formats object metadata using Go template formatting:
+### Docker CLI Power Tools & JSON Go Templates
 
 ```bash
 # Extract private IP address of container on specific network
@@ -638,64 +766,21 @@ docker inspect -f '{{json .State.Health.Log}}' prod-api | jq .
 # Inspect mounted volumes and host paths
 docker inspect -f '{{range .Mounts}}{{.Source}} -> {{.Destination}} ({{.Type}}){{"\n"}}{{end}}' prod-api
 
-# Extract exposed ports and host port bindings
-docker inspect -f '{{json .NetworkSettings.Ports}}' prod-api | jq .
-
-# Extract environment variables inside container
-docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' prod-api
-```
-
----
-
-### Real-Time Observability: Stats, Top & Events
-
-```bash
-# Live streaming resource utilization (CPU %, Mem %, Net I/O, Block I/O, PIDs)
-docker stats
-
-# Batch non-streaming snapshot formatted as table
+# Live streaming resource stats table
 docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.PIDs}}"
 
-# Display running processes inside container from host perspective
-docker top prod-api aux
-
-# Follow streaming stdout/stderr logs with timestamps and tail limit
-docker logs -f --tail 100 --timestamps prod-api
-
-# Monitor real-time daemon events (container death, OOM kills, mounts)
-docker events --filter 'event=die' --filter 'event=oom'
-```
-
----
-
-### System Cleanup & Disk Space Reclamation
-
-```bash
-# Analyze comprehensive Docker disk space consumption (Images, Containers, Volumes, Build Cache)
+# Analyze comprehensive Docker disk space consumption
 docker system df -v
 
-# Remove all stopped containers
-docker container prune -f
-
-# Remove all dangling (untagged) images
-docker image prune -f
-
-# Remove ALL unused images (not referenced by any existing container)
-docker image prune -a -f
-
-# Reclaim BuildKit build cache
-docker builder prune -a -f --keep-storage 5GB
-
-# Nuclear cleanup: Remove all stopped containers, unused networks, dangling images, and volumes
+# Clean up all stopped containers, unused networks, and dangling images
 docker system prune -a --volumes -f
 ```
 
 ---
-## 8. Docker to Kubernetes (K8s) Architectural Migration Guide
 
-As enterprise applications graduate from single-node Docker Compose environments to multi-node distributed clusters, Docker primitives map systematically to Kubernetes API objects:
+### Docker Compose to Kubernetes (K8s) Architectural Migration
 
-### Docker Compose to Kubernetes Conceptual Matrix
+When migrating from Docker Compose to distributed Kubernetes:
 
 ```text
 +-----------------------------------+-----------------------------------+-----------------------------------+
@@ -718,110 +803,7 @@ As enterprise applications graduate from single-node Docker Compose environments
 ```
 
 ---
-
-### Side-by-Side Manifest Migration (Compose to Deployment & Service)
-
-#### Docker Compose Specification (`docker-compose.yml`)
-```yaml
-version: "3.8"
-services:
-  web:
-    image: manthanank/learn-docker:latest
-    ports:
-      - "80:3000"
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-    deploy:
-      replicas: 3
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 512M
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
-      interval: 15s
-```
-
-#### Corresponding Kubernetes Manifest (`deployment.yaml` & `service.yaml`)
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: learn-docker-deployment
-  labels:
-    app: learn-docker
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: learn-docker
-  template:
-    metadata:
-      labels:
-        app: learn-docker
-    spec:
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1001
-      containers:
-        - name: web
-          image: manthanank/learn-docker:latest
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 3000
-          env:
-            - name: NODE_ENV
-              value: "production"
-            - name: PORT
-              value: "3000"
-          resources:
-            requests:
-              cpu: "250m"
-              memory: "128Mi"
-            limits:
-              cpu: "1000m"
-              memory: "512Mi"
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 3000
-            initialDelaySeconds: 10
-            periodSeconds: 15
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 3000
-            initialDelaySeconds: 5
-            periodSeconds: 5
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: learn-docker-service
-spec:
-  type: ClusterIP
-  selector:
-    app: learn-docker
-  ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 3000
-```
-
----
-
-### Probes vs Docker Healthcheck (Liveness, Readiness, Startup)
-
-In Docker, a failed `HEALTHCHECK` sets the container status to `unhealthy`. Unless an external orchestrator is used, the container continues running.
-<br><br>
-In Kubernetes, health evaluation is partitioned into three specialized probes:
-1. **Startup Probe**: Blocks liveness and readiness checks until slow-starting applications (e.g. JVM warm-up or database migrations) finish initialization.
-2. **Liveness Probe**: Detects deadlocks and unrecoverable thread starvation. Failure triggers immediate container restart (re-spawn).
-3. **Readiness Probe**: Determines whether the container is ready to accept user network traffic. If failing, Kubernetes temporarily removes the Pod from Service endpoints without restarting the process.
-
----
-## 9. Staff & Principal DevOps / Containerization Interview Masterclass (25 Q&A)
+## 6. Stage 6: Staff & Principal DevOps Interview Masterclass (25 Q&A)
 
 ### Q1: What is the exact execution flow when running `docker run`? Detail every boundary crossed.
 **Answer:**
@@ -1034,7 +1016,7 @@ The default logging driver (`json-file`) stores standard output logs in `/var/li
 Or stream logs directly to centralized observability platforms using drivers like `syslog`, `journald`, `fluentd`, or `awslogs`.
 
 ---
-## 10. Interactive Simulator, CLI & REST API Reference
+## 7. Stage 7: Interactive Simulator, CLI & REST API Reference
 
 `learn-docker` includes a production-grade TypeScript simulation engine, command-line interface, and Express REST API.
 
@@ -1062,15 +1044,11 @@ learn-docker serve --port 3000
 | Method | Endpoint | Description | Sample Request Body |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/health` | Service uptime and status | None |
-| `POST` | `/api/dockerfile/parse` | Parse Dockerfile into structured AST | `{"dockerfile": "FROM alpine
-CMD ["echo"]"}` |
-| `POST` | `/api/dockerfile/lint` | Run CIS Benchmark rules & vulnerability scanner | `{"dockerfile": "FROM node:latest
-..."}` |
+| `POST` | `/api/dockerfile/parse` | Parse Dockerfile into structured AST | `{"dockerfile": "FROM alpine\nCMD ["echo"]"}` |
+| `POST` | `/api/dockerfile/lint` | Run CIS Benchmark rules & vulnerability scanner | `{"dockerfile": "FROM node:latest\n..."}` |
 | `POST` | `/api/overlayfs/simulate` | Execute CoW and Whiteout layer mutations | `{"actions": [{"op": "write", "path": "/test"}]}` |
 | `POST` | `/api/isolation/simulate` | Simulate PID namespaces, CFS CPU burst, OOM | `{"action": "allocate_mem", "bytes": 500000000}` |
-| `POST` | `/api/compose/resolve` | Parse Compose YAML and resolve dependency DAG | `{"yaml": "services:
-  app:
-    image: ..."}` |
+| `POST` | `/api/compose/resolve` | Parse Compose YAML and resolve dependency DAG | `{"yaml": "services:\n  app:\n    image: ..."}` |
 | `POST` | `/api/container/lifecycle` | Step through state machine (start, pause, kill) | `{"action": "kill", "signal": "SIGKILL"}` |
 
 ---
