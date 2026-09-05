@@ -9,16 +9,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
+      - name: Check DockerHub Credentials
+        id: check_creds
+        run: |
+          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] && [ -n "${{ secrets.DOCKERHUB_PASSWORD }}" ]; then
+            echo "has_creds=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_creds=false" >> $GITHUB_OUTPUT
+            echo "DockerHub credentials not configured. Skipping push."
+          fi
 
       - name: DockerHub Login
-        uses: docker/login-action@v2.1.0
+        if: steps.check_creds.outputs.has_creds == 'true'
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Build the Docker image
-        run: docker build . --file Dockerfile --tag ${{ secrets.DOCKERHUB_USERNAME }}/learn-docker
+        run: docker build . --file Dockerfile --tag learn-docker:latest
 
-      - name: Docker Push
-        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/learn-docker
+      - name: Docker Tag and Push
+        if: steps.check_creds.outputs.has_creds == 'true'
+        run: |
+          docker tag learn-docker:latest ${{ secrets.DOCKERHUB_USERNAME }}/learn-docker:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/learn-docker:latest

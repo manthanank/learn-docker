@@ -1,1 +1,1 @@
-console.log("Welcome");
+module.exports = require("./dist/index.js");

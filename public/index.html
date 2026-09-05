@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Learn Docker: Enterprise Architecture & Container Internals Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #080c14;
+      --bg-card: rgba(16, 23, 38, 0.75);
+      --bg-card-hover: rgba(24, 34, 56, 0.85);
+      --border-subtle: rgba(56, 189, 248, 0.15);
+      --border-accent: rgba(56, 189, 248, 0.4);
+      --accent-cyan: #38bdf8;
+      --accent-blue: #0284c7;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-purple: #a855f7;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Fira Code', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: radial-gradient(circle at 15% 15%, #0f1f38 0%, #080c14 100%);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    header {
+      background: rgba(8, 12, 20, 0.8);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-title span {
+      background: linear-gradient(90deg, var(--accent-cyan), #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-badge {
+      font-size: 0.75rem;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-cyan);
+      padding: 2px 8px;
+      border-radius: 12px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      background: rgba(16, 23, 38, 0.6);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .nav-tab {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-tab:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-tab.active {
+      color: var(--text-main);
+      background: var(--accent-blue);
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
+    }
+
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Grid Layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 1.5rem;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Editors & Terminals */
+    .code-editor {
+      width: 100%;
+      height: 320px;
+      background: #030712;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 1rem;
+      color: #e2e8f0;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      resize: vertical;
+      line-height: 1.6;
+      outline: none;
+    }
+
+    .code-editor:focus {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+    }
+
+    .btn {
+      background: linear-gradient(135deg, var(--accent-blue), #0369a1);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:hover {
+      filter: brightness(1.15);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, var(--accent-rose), #be123c);
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, var(--accent-amber), #b45309);
+    }
+
+    /* Score Badge */
+    .score-circle {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.4rem;
+      border: 4px solid var(--accent-green);
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--accent-green);
+    }
+
+    .score-circle.score-warn {
+      border-color: var(--accent-amber);
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--accent-amber);
+    }
+
+    .score-circle.score-err {
+      border-color: var(--accent-rose);
+      background: rgba(244, 63, 94, 0.1);
+      color: var(--accent-rose);
+    }
+
+    .score-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Issues list */
+    .issues-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .issue-item {
+      background: rgba(0, 0, 0, 0.35);
+      border-left: 4px solid var(--accent-cyan);
+      padding: 10px 14px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+
+    .issue-item.error { border-left-color: var(--accent-rose); }
+    .issue-item.warning { border-left-color: var(--accent-amber); }
+    .issue-item.info { border-left-color: var(--accent-cyan); }
+
+    .issue-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .issue-rec {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin-top: 4px;
+    }
+
+    /* Layer Stack Visualizer */
+    .layer-stack {
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 8px;
+      margin-top: 1rem;
+    }
+
+    .layer-card {
+      background: rgba(16, 23, 38, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+
+    .layer-card.upper {
+      border-color: var(--accent-green);
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .layer-card.lower {
+      border-color: var(--accent-blue);
+    }
+
+    .layer-badge {
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+    }
+
+    .upper .layer-badge { background: var(--accent-green); color: #022c22; font-weight: bold; }
+    .lower .layer-badge { background: var(--accent-blue); color: #082f49; font-weight: bold; }
+
+    /* Accordion */
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+
+    .faq-question {
+      padding: 14px 18px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.2s ease;
+    }
+
+    .faq-question:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .faq-answer {
+      display: none;
+      padding: 14px 18px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-subtle);
+      background: rgba(0, 0, 0, 0.2);
+      line-height: 1.6;
+    }
+
+    .faq-item.open .faq-answer {
+      display: block;
+    }
+
+    pre {
+      background: #030712;
+      padding: 10px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: #38bdf8;
+      margin: 8px 0;
+    }
+
+    .tag-pill {
+      font-size: 0.75rem;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+        <path d="M4 11V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5"></path>
+        <path d="M2 11h20v4a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5v-4z"></path>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-title">Learn <span>Docker</span></div>
+    </div>
+    <span class="brand-badge">Enterprise v1.3</span>
+  </div>
+
+  <nav class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('studio')">Dockerfile Studio</button>
+    <button class="nav-tab" onclick="switchTab('overlayfs')">OverlayFS & CoW</button>
+    <button class="nav-tab" onclick="switchTab('isolation')">Namespaces & Cgroups</button>
+    <button class="nav-tab" onclick="switchTab('compose')">Compose DAG</button>
+    <button class="nav-tab" onclick="switchTab('lifecycle')">Lifecycle FSM</button>
+    <button class="nav-tab" onclick="switchTab('qa')">Staff Interview QA</button>
+  </nav>
+</header>
+
+<main>
+  <!-- TAB 1: Dockerfile Studio -->
+  <section id="tab-studio" class="tab-content active">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            Dockerfile Editor
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <select id="dockerfilePreset" class="btn btn-secondary" style="padding: 4px 8px;" onchange="loadPreset()">
+              <option value="hardened">Preset: Production Hardened</option>
+              <option value="vulnerable">Preset: Insecure / Root</option>
+              <option value="python">Preset: Python FastAPI</option>
+            </select>
+            <button class="btn" onclick="analyzeDockerfile()">Scan & Lint</button>
+          </div>
+        </div>
+        <textarea id="dockerfileInput" class="code-editor"></textarea>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            CIS Benchmark & Security Audit
+          </div>
+          <div id="scoreContainer" class="score-circle">
+            <span id="scoreVal">--</span>
+            <span class="score-label">SCORE</span>
+          </div>
+        </div>
+
+        <div id="issuesContainer" class="issues-list">
+          <div style="text-align: center; color: var(--text-muted); padding: 2rem;">
+            Click "Scan & Lint" to evaluate Dockerfile against CIS Docker Benchmarks.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 2: OverlayFS Simulator -->
+  <section id="tab-overlayfs" class="tab-content">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+            Overlay2 Layer Hierarchy (Bottom-Up)
+          </div>
+          <button class="btn btn-secondary" onclick="loadOverlayfs()">Refresh Stack</button>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Lower layers are immutable read-only image layers. Modifications trigger Copy-on-Write (CoW) into the UpperDir. Deletions create <code>.wh.*</code> whiteout files.
+        </p>
+        <div id="layerStack" class="layer-stack"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+            Live Container Operations & CoW Sandbox
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 1rem;">
+          <button class="btn" onclick="triggerCowModify()">Trigger CoW: Modify /app/index.js</button>
+          <button class="btn btn-warning" onclick="triggerCowDelete()">Trigger Whiteout: Delete /etc/hosts</button>
+          <button class="btn btn-secondary" onclick="triggerCowWrite()">Create /tmp/new.log</button>
+        </div>
+
+        <div class="card-header" style="margin-top: 1.5rem;">
+          <div class="card-title" style="font-size: 0.95rem;">Unified MergedDir View (/var/lib/docker/overlay2/merged)</div>
+        </div>
+        <div id="mergedFilesList" style="max-height: 220px; overflow-y: auto; font-family: var(--font-mono); font-size: 0.85rem;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 3: Isolation (Namespaces & Cgroups) -->
+  <section id="tab-isolation" class="tab-content">
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">PID Namespace Tree</div>
+          <button class="btn btn-secondary" style="padding: 4px 8px;" onclick="spawnProcess()">+ Fork Process</button>
+        </div>
+        <div id="pidTree" style="font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.8;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Cgroups v2 Limits</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          <div>
+            <label style="font-size: 0.85rem; color: var(--text-muted);">Memory Allocator (Max: 512 MB)</label>
+            <div style="display: flex; gap: 8px; margin-top: 6px;">
+              <button class="btn" onclick="allocateMem(100)">+100 MB</button>
+              <button class="btn btn-danger" onclick="allocateMem(600)">+600 MB (Trigger OOM)</button>
+            </div>
+          </div>
+          <div>
+            <label style="font-size: 0.85rem; color: var(--text-muted);">CFS CPU Quota (Max: 100% 1 Core)</label>
+            <div style="display: flex; gap: 8px; margin-top: 6px;">
+              <button class="btn" onclick="burstCpu(50)">50% Load (OK)</button>
+              <button class="btn btn-warning" onclick="burstCpu(180)">180% Load (Throttle)</button>
+            </div>
+          </div>
+          <div id="cgroupsStats" style="font-family: var(--font-mono); font-size: 0.8rem; background: #030712; padding: 10px; border-radius: 6px;"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Network Namespace & NAT</div>
+        </div>
+        <div id="netStats" style="font-size: 0.85rem; line-height: 1.6;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 4: Compose DAG -->
+  <section id="tab-compose" class="tab-content">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">docker-compose.yml Spec</div>
+          <button class="btn" onclick="resolveCompose()">Resolve DAG & Cycles</button>
+        </div>
+        <textarea id="composeInput" class="code-editor" style="height: 360px;"></textarea>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Kahn's Topological Sort & Boot Sequence</div>
+        </div>
+        <div id="composeResult" style="font-family: var(--font-mono); font-size: 0.85rem;">
+          <div style="color: var(--text-muted); padding: 1rem;">Click "Resolve DAG & Cycles" to calculate service boot batches.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 5: Lifecycle FSM -->
+  <section id="tab-lifecycle" class="tab-content">
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="card-header">
+        <div class="card-title">Container State Machine Controls</div>
+        <div id="containerStateBadge" class="brand-badge" style="background: rgba(16,185,129,0.2); color: var(--accent-green);">STATE: RUNNING</div>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button class="btn" onclick="lifecycleAction('start')">docker start</button>
+        <button class="btn btn-secondary" onclick="lifecycleAction('pause')">docker pause (SIGSTOP)</button>
+        <button class="btn btn-secondary" onclick="lifecycleAction('unpause')">docker unpause (SIGCONT)</button>
+        <button class="btn btn-warning" onclick="lifecycleAction('stop')">docker stop (SIGTERM, 10s)</button>
+        <button class="btn btn-danger" onclick="lifecycleAction('kill')">docker kill (SIGKILL 137)</button>
+        <button class="btn btn-danger" onclick="lifecycleAction('fail')">Crash / Panic (exit 1)</button>
+        <button class="btn btn-warning" onclick="lifecycleAction('unhealthy')">Fail Healthcheck</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">State Transition Audit History</div>
+      </div>
+      <div id="lifecycleHistory" style="font-family: var(--font-mono); font-size: 0.85rem; max-height: 300px; overflow-y: auto;"></div>
+    </div>
+  </section>
+
+  <!-- TAB 6: Staff Interview Q&A -->
+  <section id="tab-qa" class="tab-content">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Staff & Principal DevOps / Containerization Architectural Q&A</div>
+        <span class="tag-pill">25 Masterclass Questions</span>
+      </div>
+
+      <div class="faq-item open">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          1. What is the fundamental architecture of an OCI container runtime (runc vs containerd vs dockerd)?
+          <span>▼</span>
+        </div>
+        <div class="faq-answer">
+          <strong>Docker Engine Architecture:</strong>
+          <ul>
+            <li><strong>dockerd</strong>: High-level daemon handling REST API, user authentication, image management, volume orchestration, and bridge networking.</li>
+            <li><strong>containerd</strong>: Industry-standard container runtime supervisor (CNCF graduated). Manages complete container lifecycle, image pulls/pushes, and storage overlays.</li>
+            <li><strong>containerd-shim</strong>: Sits between containerd and runc. Keeps STDIN/STDOUT FIFO open and allows dockerd/containerd restarts without terminating running containers.</li>
+            <li><strong>runc</strong>: Low-level reference implementation of the OCI Runtime Specification. Uses <code>clone(2)</code> with namespace flags (CLONE_NEWPID, CLONE_NEWNS, etc.), configures cgroups in <code>/sys/fs/cgroup</code>, and calls <code>pivot_root</code> before executing PID 1. runc exits immediately after process handoff.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          2. How does Linux Cgroups v2 differ from v1, and why is it critical for Kubernetes and container isolation?
+          <span>▼</span>
+        </div>
+        <div class="faq-answer">
+          Cgroups v1 had disjoint, independent hierarchies for each controller (memory, cpu, blkio, pids) which caused deadlocks and synchronization flaws between memory writeback caching and blkio throttling.
+          <br><br>
+          <strong>Cgroups v2</strong> introduces a unified single-hierarchy tree where controllers are enabled per cgroup. Key improvements include:
+          <ul>
+            <li>Accurate OOM killer scoping (kills the whole cgroup or single victim cleanly).</li>
+            <li>Integrated memory writeback and IO throttling.</li>
+            <li>Elimination of multiple hierarchy cross-deadlocks.</li>
+            <li>Pressure Stall Information (PSI) for memory, CPU, and IO starvation detection.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          3. How does Overlay2 handle file deletion and directory replacement under the hood?
+          <span>▼</span>
+        </div>
+        <div class="faq-answer">
+          Because lower layers are strictly read-only, Overlay2 cannot delete files from lower layers on disk. Instead:
+          <ul>
+            <li><strong>Whiteout Files (<code>.wh.<filename></code>)</strong>: When a lower layer file is deleted, a character device node with major/minor number 0/0 is created in the UpperDir prefixed with <code>.wh.</code>. The overlay filesystem driver intercepts this and masks the underlying file from the Merged view.</li>
+            <li><strong>Opaque Directories (<code>.wh..wh..opq</code>)</strong>: When a directory is removed and recreated, Overlay2 sets an extended attribute or creates <code>.wh..wh..opq</code> inside the new directory in UpperDir, instructing the driver to hide all child files from underlying lower layers.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          4. Why is running PID 1 in a container without an init system problematic (Zombie reaping and signal trapping)?
+          <span>▼</span>
+        </div>
+        <div class="faq-answer">
+          In Unix, PID 1 has two unique kernel responsibilities:
+          <ol>
+            <li><strong>Signal Handling</strong>: The Linux kernel will not deliver default signal actions (like terminating on SIGTERM) to PID 1 unless the process has explicitly registered a custom signal handler. If Node.js, Python, or Java runs as PID 1 without signal traps, <code>docker stop</code> will hang for 10 seconds before being forcibly killed by SIGKILL (exit 137).</li>
+            <li><strong>Zombie Process Reaping</strong>: When child processes exit, they enter a zombie state until their parent calls <code>wait()</code>. If orphaned grandchildren exist, PID 1 adopts them. If PID 1 doesn't reap them, the PID table exhausts.</li>
+          </ol>
+          <em>Remediation:</em> Use <code>docker run --init</code> or lightweight inits like <code>tini</code> or <code>dumb-init</code>.
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const presets = {
+    hardened: `# Enterprise Hardened Multi-Stage Dockerfile
+FROM node:22-alpine AS builder
+WORKDIR /app
+COPY package*.json tsconfig.json ./
+RUN npm ci
+COPY src/ ./src/
+RUN npm run build && npm prune --production
+
+FROM node:22-alpine AS runner
+LABEL maintainer="engineering@enterprise.io"
+RUN addgroup -S -g 1001 appgroup && adduser -S -u 1001 -G appgroup appuser
+WORKDIR /app
+COPY --from=builder --chown=appuser:appgroup /app/dist ./dist
+COPY --from=builder --chown=appuser:appgroup /app/node_modules ./node_modules
+USER appuser
+HEALTHCHECK --interval=30s --timeout=5s CMD wget --spider http://localhost:3000/health || exit 1
+CMD ["node", "dist/server.js"]`,
+
+    vulnerable: `# Insecure Dockerfile with Anti-Patterns
+FROM node:latest
+ENV AWS_SECRET_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
+WORKDIR /app
+COPY . .
+RUN apt-get update
+RUN apt-get install -y curl python3
+RUN npm install
+CMD node server.js`,
+
+    python: `# Hardened Python FastAPI Multi-Stage
+FROM python:3.12-slim AS builder
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+FROM python:3.12-slim AS runner
+WORKDIR /app
+RUN useradd -u 1001 appuser
+COPY --from=builder /root/.local /home/appuser/.local
+COPY src/ /app/src/
+ENV PATH=/home/appuser/.local/bin:$PATH
+USER appuser
+HEALTHCHECK CMD curl -f http://localhost:8000/health || exit 1
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]`
+  };
+
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tabId).classList.add('active');
+    event.target.classList.add('active');
+
+    if (tabId === 'overlayfs') loadOverlayfs();
+    if (tabId === 'isolation') loadIsolation();
+    if (tabId === 'compose') loadCompose();
+    if (tabId === 'lifecycle') loadLifecycle();
+  }
+
+  function loadPreset() {
+    const val = document.getElementById('dockerfilePreset').value;
+    document.getElementById('dockerfileInput').value = presets[val] || presets.hardened;
+  }
+
+  async function analyzeDockerfile() {
+    const content = document.getElementById('dockerfileInput').value;
+    const res = await fetch('/api/dockerfile/lint', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dockerfile: content })
+    });
+    const data = await res.json();
+    if (!data.success) return;
+
+    const report = data.report;
+    const scoreVal = document.getElementById('scoreVal');
+    const scoreContainer = document.getElementById('scoreContainer');
+    scoreVal.innerText = report.score;
+
+    scoreContainer.className = 'score-circle ' + (report.score >= 80 ? '' : report.score >= 50 ? 'score-warn' : 'score-err');
+
+    const issuesEl = document.getElementById('issuesContainer');
+    if (report.issues.length === 0) {
+      issuesEl.innerHTML = '<div style="padding: 1rem; color: var(--accent-green); text-align: center;">✅ No security or optimization violations detected!</div>';
+      return;
+    }
+
+    issuesEl.innerHTML = report.issues.map(iss => `
+      <div class="issue-item ${iss.severity}">
+        <div class="issue-header">
+          <span>[${iss.id}] ${iss.message}</span>
+          <span style="font-size: 0.75rem; text-transform: uppercase;">Line ${iss.line}</span>
+        </div>
+        ${iss.instruction ? `<pre>${iss.instruction}</pre>` : ''}
+        <div class="issue-rec">💡 <strong>Remediation:</strong> ${iss.recommendation}</div>
+      </div>
+    `).join('');
+  }
+
+  async function loadOverlayfs() {
+    const res = await fetch('/api/overlayfs/simulate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const data = await res.json();
+    if (!data.success) return;
+
+    const stackEl = document.getElementById('layerStack');
+    const state = data.state;
+
+    let html = '';
+    // Upper
+    html += `
+      <div class="layer-card upper">
+        <div>
+          <span class="layer-badge">UpperDir (Read-Write)</span>
+          <div style="font-weight: 600; margin-top: 4px;">${state.upperDir.name}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">${state.upperDir.files.length} active files modified/created</div>
+        </div>
+        <span class="tag-pill">${state.upperDir.id}</span>
+      </div>
+    `;
+
+    // Lowers
+    for (const l of state.lowerDirs.slice().reverse()) {
+      html += `
+        <div class="layer-card lower">
+          <div>
+            <span class="layer-badge">LowerDir (Read-Only)</span>
+            <div style="font-weight: 600; margin-top: 4px;">${l.name}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Instruction: <code>${l.instruction || ''}</code></div>
+          </div>
+          <span class="tag-pill">${l.id}</span>
+        </div>
+      `;
+    }
+    stackEl.innerHTML = html;
+
+    const filesEl = document.getElementById('mergedFilesList');
+    filesEl.innerHTML = state.mergedFiles.map(f => `
+      <div style="padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between;">
+        <span>📄 ${f.path}</span>
+        <span style="color: var(--text-muted); font-size: 0.75rem;">layer: ${f.layerId}</span>
+      </div>
+    `).join('');
+  }
+
+  async function triggerCowModify() {
+    await fetch('/api/overlayfs/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actions: [{ op: 'write', path: '/app/index.js', content: 'console.log("CoW Active");' }] })
+    });
+    loadOverlayfs();
+  }
+
+  async function triggerCowDelete() {
+    await fetch('/api/overlayfs/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actions: [{ op: 'delete', path: '/etc/hosts' }] })
+    });
+    loadOverlayfs();
+  }
+
+  async function triggerCowWrite() {
+    await fetch('/api/overlayfs/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actions: [{ op: 'write', path: '/tmp/runtime.log', content: 'Log entry timestamp' }] })
+    });
+    loadOverlayfs();
+  }
+
+  async function loadIsolation() {
+    const res = await fetch('/api/isolation/simulate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const data = await res.json();
+    if (!data.success) return;
+
+    const snap = data.snapshot;
+    const pidTree = document.getElementById('pidTree');
+    pidTree.innerHTML = snap.namespaces.pid.tree.map(p => `
+      <div style="padding: 4px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+        Container PID: <strong>${p.containerPid}</strong> | Host PID: <strong>${p.hostPid}</strong><br>
+        Process: <code>${p.name}</code> (Mem: ${(p.memoryBytes / (1024*1024)).toFixed(1)} MB, State: ${p.state})
+      </div>
+    `).join('');
+
+    document.getElementById('cgroupsStats').innerHTML = `
+Cgroups v2 Limits:
+• memory.max: ${(snap.cgroups.config.memory.maxBytes / (1024*1024)).toFixed(0)} MB
+• Current Memory: ${(snap.cgroups.metrics.memoryUsageBytes / (1024*1024)).toFixed(1)} MB
+• OOM Killed: ${snap.cgroups.metrics.memoryOOMKilled ? 'YES ❌' : 'NO ✅'}
+• cpu.max quota: ${snap.cgroups.config.cpu.quotaMicroseconds / 1000}ms / ${snap.cgroups.config.cpu.periodMicroseconds / 1000}ms
+• CPU Throttled Cycles: ${snap.cgroups.metrics.cpuThrottledCycles}
+    `;
+
+    document.getElementById('netStats').innerHTML = `
+      <p><strong>veth Pair:</strong> ${snap.namespaces.net.vethHost} (host) ⇄ ${snap.namespaces.net.vethContainer} (container)</p>
+      <p><strong>Container IP:</strong> ${snap.namespaces.net.containerIp} (${snap.namespaces.net.subnet})</p>
+      <p><strong>Gateway (Bridge):</strong> ${snap.namespaces.net.gateway}</p>
+      <p><strong>Port Forwarding (NAT):</strong> 0.0.0.0:3000 ➔ 172.17.0.2:3000 (tcp)</p>
+    `;
+  }
+
+  async function allocateMem(mb) {
+    const res = await fetch('/api/isolation/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'allocate_mem', bytes: mb * 1024 * 1024 })
+    });
+    const data = await res.json();
+    if (data.actionResult && data.actionResult.oomKilled) {
+      alert(`⚠️ Cgroups OOM Killer invoked! Memory limit exceeded. Process PID ${data.actionResult.killedPid} terminated with SIGKILL (exit 137).`);
+    }
+    loadIsolation();
+  }
+
+  async function burstCpu(pct) {
+    const res = await fetch('/api/isolation/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'burst_cpu', cpuPercent: pct })
+    });
+    const data = await res.json();
+    if (data.actionResult && data.actionResult.throttled) {
+      alert(`⚠️ Completely Fair Scheduler (CFS) throttled CPU! Requested ${pct}%, but cgroups cpu.max limits to ${data.actionResult.allowedPercent}%. Throttled by ${data.actionResult.throttledPercent}%.`);
+    }
+    loadIsolation();
+  }
+
+  async function spawnProcess() {
+    const name = prompt("Enter process name:", "worker-node");
+    if (!name) return;
+    await fetch('/api/isolation/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'spawn', name })
+    });
+    loadIsolation();
+  }
+
+  function loadCompose() {
+    const sample = `version: '3.8'
+services:
+  web:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+  api:
+    image: node:22-alpine
+    depends_on:
+      - db
+      - redis
+  db:
+    image: postgres:16-alpine
+  redis:
+    image: redis:7-alpine`;
+    document.getElementById('composeInput').value = sample;
+    resolveCompose();
+  }
+
+  async function resolveCompose() {
+    const val = document.getElementById('composeInput').value;
+    const res = await fetch('/api/compose/resolve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ yaml: val })
+    });
+    const data = await res.json();
+    if (!data.success) return;
+
+    const r = data.result;
+    const el = document.getElementById('composeResult');
+
+    let html = `
+      <div style="margin-bottom: 1rem;">
+        <strong>Validation:</strong> ${r.isValid ? '✅ Valid DAG' : '❌ Error'}<br>
+        <strong>Cycle Detected:</strong> ${r.hasCycle ? '⚠️ YES (' + (r.cycleNodes||[]).join(', ') + ')' : 'NO'}<br>
+        <strong>Services:</strong> ${r.services.join(', ')}
+      </div>
+    `;
+
+    if (r.startupOrder && r.startupOrder.length > 0) {
+      html += '<strong>Calculated Boot Stages (Topological Order):</strong>';
+      r.startupOrder.forEach((batch, idx) => {
+        html += `
+          <div style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; margin: 6px 0;">
+            <span style="color: var(--accent-cyan); font-weight: bold;">Level ${idx + 1} (Concurrent):</span> [ ${batch.join(', ')} ]
+          </div>
+        `;
+      });
+
+      html += `<div style="margin-top: 1rem;"><strong>Shutdown Order (Reverse):</strong> ${r.shutdownOrder.join(' ➔ ')}</div>`;
+    }
+
+    el.innerHTML = html;
+  }
+
+  async function loadLifecycle() {
+    const res = await fetch('/api/container/lifecycle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const data = await res.json();
+    if (!data.success) return;
+    renderLifecycle(data.snapshot);
+  }
+
+  async function lifecycleAction(action) {
+    const res = await fetch('/api/container/lifecycle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action })
+    });
+    const data = await res.json();
+    if (!data.success) return;
+    renderLifecycle(data.snapshot);
+  }
+
+  function renderLifecycle(snap) {
+    const badge = document.getElementById('containerStateBadge');
+    badge.innerText = `STATE: ${snap.state.toUpperCase()}`;
+    badge.style.color = snap.state === 'running' ? 'var(--accent-green)' : snap.state === 'paused' ? 'var(--accent-amber)' : 'var(--accent-rose)';
+
+    const historyEl = document.getElementById('lifecycleHistory');
+    historyEl.innerHTML = snap.history.map(h => `
+      <div style="padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between;">
+        <span>${new Date(h.timestamp).toLocaleTimeString()} - <strong>${h.fromState} ➔ ${h.toState}</strong></span>
+        <span style="color: var(--text-muted);">${h.trigger} ${h.exitCode !== undefined ? `(exit ${h.exitCode})` : ''}</span>
+      </div>
+    `).join('');
+  }
+
+  function toggleFaq(el) {
+    el.parentElement.classList.toggle('open');
+  }
+
+  // Initial load
+  loadPreset();
+  analyzeDockerfile();
+</script>
+
+</body>
+</html>

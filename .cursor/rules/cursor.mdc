@@ -1,0 +1,16 @@
+---
+description: Cursor rules for learn-docker development and containerization standards
+globs: **/*.ts, **/*.json, **/Dockerfile, **/docker-compose.yml
+---
+
+# Cursor AI Rules for learn-docker
+
+- **Language & Runtime**: Strict TypeScript target ES2022 on Node.js 18+.
+- **Containerization Best Practices**:
+  - Always encourage multi-stage Dockerfiles separating build environments from minimal production runners.
+  - Flag root execution (`USER root` or missing non-root user).
+  - Check for proper signal trapping and `STOPSIGNAL SIGTERM` handling.
+  - Advise against installing unnecessary packages or leaving package manager caches (`rm -rf /var/lib/apt/lists/*`).
+- **Testing**:
+  - Keep 100% test coverage using Vitest.
+  - Test corner cases: empty Dockerfiles, invalid YAML, cyclical compose service dependencies, whiteout files in OverlayFS.
