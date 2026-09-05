@@ -1,3 +1,12 @@
+# [1.4.0](https://github.com/manthanank/learn-docker/compare/v1.3.0...v1.4.0) (2026-09-05)
+
+
+### Features
+
+* modernize into enterprise Docker architecture platform and curriculum ([2524ee6](https://github.com/manthanank/learn-docker/commit/2524ee6c8bd1220751d6258ad3431b5357411bcb))
+
+
+
 # [1.3.0](https://github.com/manthanank/learn-docker/compare/v1.2.1...v1.3.0) (2023-04-23)
 
 
