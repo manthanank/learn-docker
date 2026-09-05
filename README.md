@@ -119,7 +119,7 @@ flowchart TD
     Shim -->|OCI Bundle CLI invocation| Runc["OCI Runtime (runc)"]
     Runc -->|clone syscall + namespaces + cgroups| ContainerProc["Container PID 1 (nginx)"]
     Runc -->|Exits immediately after fork/exec| RuncExit["runc terminates"]
-    Shim -.->|Maintains STDIN/STDOUT & catches SIGCHLD| ContainerProc
+    Shim -.->|Maintains STDIN/STDOUT and catches SIGCHLD| ContainerProc
 ```
 
 - **`dockerd`**: High-level daemon handling developer ergonomics, CLI REST endpoints, image building (BuildKit), volume management, user-defined bridge networking, and secret storage.
@@ -196,7 +196,9 @@ While namespaces govern **what a process can see**, Control Groups (Cgroups) gov
 
 #### Completely Fair Scheduler (CFS) Throttling
 Docker configures CPU limits through the Linux CFS scheduler:
-$$	ext{Allocated CPU Cores} = rac{	ext{cpu.max quota}}{	ext{cpu.max period}}$$
+```text
+Allocated CPU Cores = (cpu.max quota) / (cpu.max period)
+```
 For example, `--cpus=1.5` sets `cpu.max` to `150000 100000`. If a multi-threaded workload attempts to consume more than 150ms of CPU runtime within a 100ms wall-clock period, the kernel throttles the process until the next CFS period commences.
 
 #### The Linux Out-Of-Memory (OOM) Killer
@@ -321,18 +323,18 @@ flowchart LR
         IPTables["iptables NAT / PREROUTING"]
         Bridge["docker0 Bridge (172.17.0.1)"]
         VethHost["veth1a2b3c"]
-        Eth0 <--> IPTables
-        IPTables <--> Bridge
-        Bridge <--> VethHost
+        Eth0 --- IPTables
+        IPTables --- Bridge
+        Bridge --- VethHost
     end
 
     subgraph Container["Container Network Namespace (CLONE_NEWNET)"]
         VethContainer["eth0 (172.17.0.2)"]
         App["Node.js Server (:3000)"]
-        VethContainer <--> App
+        VethContainer --- App
     end
 
-    VethHost <== Virtual Ethernet Cable ==> VethContainer
+    VethHost <-->|Virtual Ethernet Cable| VethContainer
 ```
 
 1. **Virtual Ethernet (`veth`) Pair**: Acts as a virtual patch cord. Packets transmitted into `veth1a2b3c` in the host namespace emerge immediately on `eth0` inside the container namespace.

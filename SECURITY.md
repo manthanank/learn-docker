@@ -8,7 +8,7 @@ We release patches and security advisories for the following versions:
 | ------- | ------------------ |
 | 1.3.x   | :white_check_mark: |
 | 1.2.x   | :x:                |
-| < 1.2   | :x:                |
+| < 1.2.0 | :x:                |
 
 ## Reporting a Vulnerability
 
