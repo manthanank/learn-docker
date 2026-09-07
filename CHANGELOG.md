@@ -1,3 +1,12 @@
+# [1.5.0](https://github.com/manthanank/learn-docker/compare/v1.4.1...v1.5.0) (2026-09-07)
+
+
+### Features
+
+* **docker:** expand to exhaustive encyclopedia with 1,390 lines, Dockerfile instruction guide and 50 interview Q&As ([0c64022](https://github.com/manthanank/learn-docker/commit/0c640223f5f7c0daab0d9cbb3c566d8dcdb10b57))
+
+
+
 ## [1.4.1](https://github.com/manthanank/learn-docker/compare/v1.4.0...v1.4.1) (2026-09-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * deleted publish yml file ([08be23c](https://github.com/manthanank/learn-docker/commit/08be23c28df4b3d0f094d0b92b76cddf78c6a2c9))
-
-
-
-# [1.2.0](https://github.com/manthanank/learn-docker/compare/v1.1.0...v1.2.0) (2023-04-15)
-
-
-### Features
-
-* updatedd ([0217078](https://github.com/manthanank/learn-docker/commit/021707823cfcc75461ec0543f30a8ffb601a00c4))
 
 
 
