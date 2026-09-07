@@ -276,6 +276,155 @@ docker run -d -v my-database-data:/var/lib/postgresql/data postgres:16-alpine
 Even if you destroy the Postgres container, `my-database-data` remains intact on the host storage disk. Spawning a new container and mounting the same volume restores all database data immediately!
 
 ---
+
+---
+
+## 1.5 The Complete Dockerfile Instruction Encyclopedia
+
+A Dockerfile is a text document that contains all the commands a user could call on the command line to assemble an image. Below is an exhaustive, atomic reference for every instruction.
+
+```mermaid
+flowchart TD
+    BuildKit["Docker BuildKit Engine"] --> Base["FROM (Base OS / Runtime)"]
+    Base --> Config["ARG & ENV (Build-time & Runtime variables)"]
+    Config --> Meta["WORKDIR, USER, EXPOSE (Container execution context)"]
+    Meta --> Files["COPY & ADD (Inject source code & assets)"]
+    Files --> Exec["RUN (Execute build commands, compile binaries)"]
+    Exec --> Health["HEALTHCHECK (Periodic liveness evaluation)"]
+    Health --> Entry["ENTRYPOINT + CMD (Executable container process)"]
+```
+
+### 1.5.1 `FROM`: Multi-Stage & Base Image Selection
+The `FROM` instruction initializes a new build stage and sets the base image:
+
+```dockerfile
+# Syntax: FROM [--platform=<platform>] <image>[:<tag>] [AS <name>]
+FROM node:22-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
+# Production runtime stage (Alpine minimal footprint)
+FROM node:22-alpine AS runner
+WORKDIR /app
+COPY --from=builder /app/node_modules ./node_modules
+```
+
+| Parameter | Purpose | Architectural Rule |
+| :--- | :--- | :--- |
+| `AS <name>` | Names the build stage for multi-stage referencing (`COPY --from=name`) | Mandatory for keeping final production images small ($<100\text{MB}$) |
+| `--platform=linux/amd64` | Forces cross-platform architecture emulation (e.g. on Apple Silicon M-series) | Prevents architecture mismatch errors in production CI/CD |
+
+---
+
+### 1.5.2 `RUN` vs `CMD` vs `ENTRYPOINT`
+A frequent point of confusion is the distinction between these three execution directives:
+
+```mermaid
+flowchart LR
+    RUN["RUN (Build Time)"] -->|"Compiles binaries, installs apt/apk packages"| Layer["Saved into immutable Image Layer"]
+    ENTRYPOINT["ENTRYPOINT (Run Time)"] -->|"Fixed executable binary (e.g. python, node, nginx)"| Process["Container Primary Process (PID 1)"]
+    CMD["CMD (Run Time)"] -->|"Default arguments passed to ENTRYPOINT"| Process
+```
+
+#### Code Example: Combining `ENTRYPOINT` and `CMD`
+```dockerfile
+# Executable binary
+ENTRYPOINT ["node", "server.js"]
+
+# Default argument (can be overridden by docker run arguments)
+CMD ["--port", "8080"]
+
+# Running: docker run my-app
+# Executes: node server.js --port 8080
+
+# Running: docker run my-app --port 9000
+# Executes: node server.js --port 9000
+```
+
+---
+
+### 1.5.3 `COPY` vs `ADD`
+```dockerfile
+# PREFERRED: COPY (Safe, explicit file and directory injection)
+COPY src/ /app/src/
+COPY --chown=node:node package.json /app/
+
+# SPECIALIZED: ADD (Auto-extracts local tar archives or downloads remote URLs)
+ADD release-v2.1.tar.gz /app/extracted/
+```
+
+| Dimension | `COPY` (Recommended) | `ADD` |
+| :--- | :--- | :--- |
+| **Tar Extraction** | No (Copies tar file as-is) | Yes (Automatically extracts `.tar`, `.gz`, `.bz2`) |
+| **Remote URLs** | No | Yes (Downloads remote HTTP URLs) |
+| **Security Risk** | Minimal | High (Vulnerable to Zip Slip attacks and unverified URL downloads) |
+
+---
+
+### 1.5.4 `ARG` vs `ENV`: Scoping & Secret Leakage Prevention
+```dockerfile
+# ARG: Available ONLY during image build time (discarded in final image)
+ARG NODE_ENV=production
+ARG BUILD_VERSION
+
+# ENV: Persists into the running container environment
+ENV PORT=8080
+ENV NODE_ENV=${NODE_ENV}
+```
+
+> [!CAUTION]
+> Never pass API keys or database passwords via `ARG` or `ENV`! Even if deleted in later layers, `ARG` and `ENV` values are baked into the image history and can be recovered using `docker history --no-trunc <image>`. Use BuildKit secrets (`RUN --mount=type=secret`) instead!
+
+---
+
+### 1.5.5 `HEALTHCHECK`: Container Liveness Evaluation
+Instructs Docker how to test a container to check that it is still working:
+
+```dockerfile
+# HEALTHCHECK [OPTIONS] CMD command
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+```
+
+| Parameter | Meaning | Recommended Value |
+| :--- | :--- | :--- |
+| `--interval` | Time between consecutive health evaluations | `30s` |
+| `--timeout` | If a single check takes longer than this, it is considered failed | `5s` |
+| `--start-period` | Initialization time allowed for boot before counting retries | `10s` to `60s` |
+| `--retries` | Number of consecutive failures before marking container `unhealthy` | `3` |
+
+---
+
+### 1.5.6 `USER`: Non-Root Least Privilege Hardening
+By default, Docker runs containers as `root` (UID 0). If an attacker escapes a container running as root, they gain root access to the host machine kernel!
+
+```dockerfile
+# Create unprivileged system group and user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Change ownership of application directory
+WORKDIR /app
+COPY --chown=appuser:appgroup . .
+
+# Switch away from root
+USER appuser
+
+CMD ["node", "index.js"]
+```
+
+---
+
+### 1.5.7 `VOLUME` & `WORKDIR`
+```dockerfile
+# Set absolute working directory (creates directory if it does not exist)
+WORKDIR /usr/src/app
+
+# Declare managed mount point for persistent data (bypasses container root filesystem)
+VOLUME ["/var/log/app", "/usr/src/app/uploads"]
+```
+
+
 ## 2. Stage 2: Intermediate Multi-Container Workflows
 
 ### Why Single Containers Aren't Enough
@@ -1048,6 +1197,158 @@ The default logging driver (`json-file`) stores standard output logs in `/var/li
 Or stream logs directly to centralized observability platforms using drivers like `syslog`, `journald`, `fluentd`, or `awslogs`.
 
 ---
+
+#### Q26: What is the exact difference between Docker's Virtualization and Kernel Namespaces?
+> **Answer**:
+> Traditional Virtual Machines (Type-1 / Type-2 Hypervisors) emulate physical hardware, running a complete guest operating system with its own kernel. Docker containers are **not VMs**; they are isolated user-space processes running directly on the **host operating system kernel**, constrained by Linux **Namespaces** (for visibility isolation) and **Cgroups** (for resource limits).
+
+#### Q27: What are the 6 Linux Kernel Namespaces used by Docker?
+> **Answer**:
+> 1. `PID` (Process IDs): Process isolation (inside container, main process is PID 1).
+> 2. `NET` (Networking): Independent network interfaces, IP routing tables, and port bindings.
+> 3. `MNT` (Mount): Independent filesystem mount points.
+> 4. `IPC` (Inter-Process Communication): Isolated POSIX message queues and shared memory.
+> 5. `UTS` (Hostnames): Isolated hostname and domain name.
+> 6. `USER` (User IDs): Maps container root (UID 0) to an unprivileged UID on the host.
+
+#### Q28: How does OverlayFS work in Docker storage drivers?
+> **Answer**:
+> OverlayFS merges multiple directory layers into a single unified filesystem view:
+> - **LowerDir (Read-Only)**: The immutable image layers. Multiple containers share the exact same lower layers on disk.
+> - **UpperDir (Read-Write)**: A dedicated ephemeral layer unique to that specific container.
+> - **MergedDir**: The union mount presented to the container process.
+> When a file is modified, OverlayFS executes a **Copy-on-Write (CoW)**: it copies the file from `lowerdir` up to `upperdir` before modifying it, leaving the lower image layer untouched.
+
+#### Q29: What is the OOM Killer in Linux and how does Docker handle memory limits?
+> **Answer**:
+> When container processes exceed the Cgroup memory limit (`--memory=512m`), the Linux Out-Of-Memory (OOM) Killer evaluates `oom_score` and sends a `SIGKILL (exit code 137)` to terminate the container. To prevent crashes, configure memory swap buffers (`--memory-swap`) or profile heap allocations.
+
+#### Q30: Why is running applications as PID 1 in a container problematic?
+> **Answer**:
+> In Linux, PID 1 has special duties:
+> 1. **Signal Handling**: By default, PID 1 ignores standard `SIGTERM` signals unless an explicit handler is installed. Applications (like Node.js) that do not handle `SIGTERM` will not shut down gracefully and will be abruptly killed after 10s via `SIGKILL`.
+> 2. **Zombie Reaping**: When child processes die, PID 1 must reap them (`wait()`). Without an init system, orphaned zombie processes accumulate, exhausting OS process table slots.
+> - **Remediation**: Use `--init` flag (`docker run --init`) or lightweight init systems like **Tini** or **Dumb-init**.
+
+#### Q31: What is the difference between `docker stop` and `docker kill`?
+> **Answer**:
+> - `docker stop`: Sends `SIGTERM` to the container process, waits for a grace period (default 10s) for the process to complete in-flight transactions and shut down cleanly, and sends `SIGKILL` only if it fails to exit within the window.
+> - `docker kill`: Immediately sends an uncatchable `SIGKILL` signal, instantly terminating the process without allowing any cleanup.
+
+#### Q32: What is BuildKit and what are its key advantages over the legacy builder?
+> **Answer**:
+> BuildKit (`DOCKER_BUILDKIT=1`) is Docker's modern build execution engine:
+> 1. **Parallel Execution**: Concurrently builds independent stages in multi-stage Dockerfiles.
+> 2. **Cache Mounts (`--mount=type=cache`)**: Persists package manager caches (`/root/.npm`, `/root/.cache/go-build`) across builds without baking them into image layers.
+> 3. **Secret Mounts (`--mount=type=secret`)**: Mounts sensitive credentials securely during build time without leaking them into image metadata.
+> 4. **Pruning Unused Stages**: Skips building stages whose targets are not requested in the final image.
+
+#### Q33: How does Docker implement bridge networking?
+> **Answer**:
+> Docker creates a virtual software bridge (default `docker0`) on the host. Each container receives a virtual ethernet pair (`veth`): one end attaches to the container's private network namespace as `eth0`, and the other attaches to the `docker0` bridge. Host `iptables` NAT rules rewrite outgoing packets (MASQUERADE) and route incoming port bindings (DNAT).
+
+#### Q34: What is the difference between Host network mode and Bridge network mode?
+> **Answer**:
+> - **Bridge (Default)**: Container runs in an isolated network namespace with its own private IP address. Host ports must be forwarded via `-p 8080:8080`.
+> - **Host (`--network host`)**: Container shares the host machine's network stack directly. Bypasses Docker network virtualization, eliminating NAT routing overhead for maximum throughput, but introduces port conflict risks.
+
+#### Q35: What are Distroless images and why are they recommended for enterprise security?
+> **Answer**:
+> Distroless images (maintained by Google) contain **only the application and its runtime dependencies**. They contain no Linux distribution package managers (`apt`, `apk`), no shells (`bash`, `sh`), and no standard utilities (`ls`, `curl`, `cat`). If an attacker exploits an application vulnerability, they cannot spawn an interactive shell or download malicious payloads.
+
+#### Q36: How do you shrink a 1GB Docker image down to <50MB?
+> **Answer**:
+> 1. Use Multi-Stage builds: Separate compilation tools from production runtime.
+> 2. Base on Alpine Linux (`alpine`) or Distroless (`gcr.io/distroless/nodejs`).
+> 3. Combine commands in a single `RUN` layer to clean up caches (`rm -rf /var/cache/apk/*`).
+> 4. Add a comprehensive `.dockerignore` file excluding `node_modules`, `.git`, `.env`, and tests.
+> 5. Strip debug symbols from compiled binaries (`strip --strip-all`).
+
+#### Q37: What is the difference between anonymous volumes, named volumes, and bind mounts?
+> **Answer**:
+> - **Anonymous Volume (`VOLUME /data`)**: Managed by Docker in `/var/lib/docker/volumes/<uuid>`. Difficult to reference across container rebuilds.
+> - **Named Volume (`-v my_data:/data`)**: Managed by Docker with a friendly identifier. Retains state across container destruction; ideal for databases.
+> - **Bind Mount (`-v $(pwd)/src:/app/src`)**: Mounts an explicit host directory into the container. Subject to host file permissions; ideal for local development hot-reloading.
+
+#### Q38: What is the difference between `EXPOSE` and `-p` (publish)?
+> **Answer**:
+> - `EXPOSE 80`: Purely informational documentation in the Dockerfile indicating which port the container application listens on. **Does NOT open or publish any ports!**
+> - `-p 8080:80`: Active port mapping. Configures host kernel `iptables` rules to route incoming traffic from host port 8080 to container port 80.
+
+#### Q39: What is Rootless Docker?
+> **Answer**:
+> Rootless Docker runs the Docker daemon (`dockerd`) and containers inside a non-root user namespace without requiring `sudo` privileges. If the daemon or container runtime is compromised, the attacker does not obtain host root privileges.
+
+#### Q40: How does Docker Compose resolve dependencies with `depends_on`?
+> **Answer**:
+> Standard `depends_on: [db]` only waits for the `db` container to **start running**, not for the database engine inside it to finish booting and accept connections.
+> - **Production Solution**: Use long-form `depends_on` with `condition: service_healthy`:
+>   ```yaml
+>   depends_on:
+>     database:
+>       condition: service_healthy
+>   ```
+
+#### Q41: What is the purpose of `docker system prune`?
+> **Answer**:
+> `docker system prune` cleans up unused Docker resources: stopped containers, unused networks, dangling images, and build caches. Adding `-a --volumes` cleans up all unreferenced images and volumes, reclaiming tens of gigabytes of disk space.
+
+#### Q42: What is a dangling image versus an unused image?
+> **Answer**:
+> - **Dangling Image**: An image layer with no tag (`<none>:<none>`), typically created when building an image with a tag that already belongs to an existing image.
+> - **Unused Image**: A fully tagged image that is not currently referenced by any active or stopped container.
+
+#### Q43: How do you inspect container logs in real time without filling disk space?
+> **Answer**:
+> Configure log rotation drivers in `/etc/docker/daemon.json`:
+> ```json
+> {
+>   "log-driver": "json-file",
+>   "log-opts": {
+>     "max-size": "50m",
+>     "max-file": "3"
+>   }
+> }
+> ```
+> This caps log files at 50MB and rotates up to 3 archives, preventing disk exhaustion.
+
+#### Q44: What is the difference between Docker Swarm and Kubernetes?
+> **Answer**:
+> - **Docker Swarm**: Native, lightweight clustering built into the Docker CLI. Simple setup, low operational complexity, but limited ecosystem and scaling features.
+> - **Kubernetes (K8s)**: Industry-standard container orchestration platform. Highly extensible, supporting complex networking, custom controllers (CRDs), automated autoscaling (HPA/VPA), and multi-cloud service meshes.
+
+#### Q45: How do you debug a crashed container that exited immediately?
+> **Answer**:
+> 1. Check exit code and metadata: `docker inspect <container_id> --format='{{.State.ExitCode}}: {{.State.Error}}'`.
+> 2. View stdout/stderr logs: `docker logs --tail 100 <container_id>`.
+> 3. Override entrypoint to inspect filesystem: `docker run --rm -it --entrypoint /bin/sh <image_name>`.
+
+#### Q46: What is a Docker Context?
+> **Answer**:
+> A Docker Context (`docker context use <name>`) allows a single local Docker CLI to seamlessly switch between different Docker daemon endpoints (e.g., local daemon, remote SSH server, AWS ECS, or Azure ACI).
+
+#### Q47: How does Docker handle DNS resolution between containers?
+> **Answer**:
+> In user-defined bridge networks, Docker runs an **embedded DNS server at 127.0:0.11**. Containers resolve sibling containers by their container name or service name (`curl http://api-service:3000`). Note: the default default `bridge` network does NOT provide automatic DNS resolution.
+
+#### Q48: What is the purpose of `.dockerignore`?
+> **Answer**:
+> `.dockerignore` excludes files and directories from the build context sent to the Docker daemon. Excluding `.git`, `node_modules`, and local build directories accelerates build speeds and prevents accidentally leaking local secrets into image layers.
+
+#### Q49: What is container drift and how do you prevent it?
+> **Answer**:
+> Container drift occurs when changes are made manually inside a running container (e.g. running `apt-get install` or modifying config files) instead of updating the Dockerfile.
+> - **Remediation**: Run containers with the `--read-only` flag, making the root filesystem immutable.
+
+#### Q50: How do you implement automated container vulnerability scanning in CI/CD?
+> **Answer**:
+> Integrate static vulnerability scanners like **Trivy**, **Grype**, or **Docker Scout** into the CI pipeline:
+> ```bash
+> trivy image --severity HIGH,CRITICAL --exit-code 1 my-production-app:latest
+> ```
+> If any critical CVE is detected, the pipeline fails and blocks the container from being pushed to the registry.
+
+
 ## 7. Stage 7: Interactive Simulator, CLI & REST API Reference
 
 `learn-docker` includes a production-grade TypeScript simulation engine, command-line interface, and Express REST API.
